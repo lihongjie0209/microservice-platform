@@ -1,0 +1,9 @@
+/services/*/
+/contracts/*/
+/libraries/*/
+/deploy/*/
+!/services/.gitkeep
+!/contracts/.gitkeep
+!/libraries/.gitkeep
+!/deploy/.gitkeep
+
