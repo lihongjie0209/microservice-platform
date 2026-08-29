@@ -1,0 +1,18 @@
+name: ""
+namespace: platform
+environment: production
+replicas: 2
+image:
+  repository: ""
+  tag: ""
+resources:
+  requests: {cpu: 100m, memory: 128Mi}
+  limits: {cpu: "1", memory: 512Mi}
+pdb: {minAvailable: 1}
+autoscaling: {minReplicas: 2, maxReplicas: 10, targetCPUUtilization: 70}
+networkPolicy:
+  egress: []
+externalSecret:
+  store: ""
+  key: ""
+  refreshInterval: 1h

@@ -2,8 +2,14 @@
 /contracts/*/
 /libraries/*/
 /deploy/*/
+/.tools/
 !/services/.gitkeep
 !/contracts/.gitkeep
 !/libraries/.gitkeep
 !/deploy/.gitkeep
-
+!/deploy/platform-helm/
+!/deploy/platform-helm/**
+!/deploy/platform-gitops/
+!/deploy/platform-gitops/**
+!/deploy/postgres/
+!/deploy/postgres/**

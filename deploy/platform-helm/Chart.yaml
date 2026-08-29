@@ -1,0 +1,6 @@
+apiVersion: v2
+name: platform-library
+description: Shared Kubernetes workload templates for platform Go services
+type: library
+version: 0.1.0
+appVersion: "1.0"

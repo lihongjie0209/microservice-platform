@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: platform-services
+  namespace: argocd
+spec:
+  generators:
+    - matrix:
+        generators:
+          - list:
+              elements:
+                - {environment: development, cluster: https://kubernetes.default.svc, namespace: platform-development}
+                - {environment: testing, cluster: https://kubernetes.default.svc, namespace: platform-testing}
+                - {environment: production, cluster: https://kubernetes.default.svc, namespace: platform-production}
+          - list:
+              elements:
+                - {service: identity-service}
+                - {service: tenant-service}
+                - {service: authorization-service}
+                - {service: audit-service}
+                - {service: config-service}
+                - {service: notification-service}
+                - {service: file-service}
+  template:
+    metadata:
+      name: '{{service}}-{{environment}}'
+    spec:
+      project: platform
+      source:
+        repoURL: https://github.com/lihongjie0209/platform-gitops.git
+        targetRevision: main
+        path: 'services/{{service}}/overlays/{{environment}}'
+      destination:
+        server: '{{cluster}}'
+        namespace: '{{namespace}}'
+      syncPolicy:
+        automated: {prune: true, selfHeal: true}
+        syncOptions: [CreateNamespace=true, ServerSideApply=true]

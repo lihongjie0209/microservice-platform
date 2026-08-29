@@ -7,6 +7,10 @@
 - 在线跨服务只通过 HTTP/gRPC/事件契约通信，不直接查询其他服务的数据表。报表/OLAP 优先通过 CDC、领域事件或定时导出建立独立只读模型；直连其他服务 OLTP 数据只作为经过架构评审的只读例外。
 - Proto 进入统一契约仓库，生成的 Go SDK 按版本发布，生产者和消费者禁止复制定义。
 - 基础设施组件不是业务微服务，不为 Redis、数据库或消息队列再包装一层无业务价值的服务。
+- 所有可变持久化表统一包含 `version BIGINT NOT NULL DEFAULT 1`、`created_at`、`updated_at`、`created_by`、`updated_by`；调用主体由共享认证拦截器注入 Context，应用层显式传递给 Repository。
+- 更新和软删除必须携带期望版本号，通过单条 SQL 原子递增版本；版本过期统一返回平台错误码。分布式锁仅用于乐观锁无法覆盖的跨资源/跨系统约束，锁键缩小到具体业务资源。
+- PostgreSQL 字符串默认使用 `TEXT`，只有真实领域长度约束才使用限长类型；时间使用 `TIMESTAMPTZ`，数据库和连接会话统一以 `Asia/Shanghai`（UTC+08:00）展示。
+- 对已知高增长表在上线前定义分区、保留、归档和删除负责人。服务迁移负责原生声明式分区，`pg_partman` 等自动维护组件由部署/DBA 层可选启用。
 
 ## P0：最小平台闭环
 
@@ -100,7 +104,9 @@
 
 ### libraries
 
-- `platform-go`：认证拦截器、Request ID、错误映射、Trace 传播和客户端工厂。
+- `microservice-platform-go`：认证拦截器、Request ID、错误映射、Trace 传播和客户端工厂。
+- `microservice-platform-go` 统一提供认证/授权主体上下文、审计字段构造，以及基于成熟 Redsync 组件的 Redis 分布式锁；服务不得复制锁算法或自行拼装 `SET NX`。
+- 全局错误码、HTTP/gRPC 映射和乐观锁冲突语义由 `microservice-platform-go` 统一维护，服务不得自行重复分配编号。
 - 只放稳定的横切能力，不放跨服务业务模型和数据库 Repository。
 - SDK 版本必须可独立升级，避免所有服务锁步发布。
 
@@ -173,7 +179,7 @@
 go-api-template
 microgen
 platform-protos
-platform-go
+microservice-platform-go
 platform-helm
 platform-gitops
 identity-service
@@ -191,7 +197,7 @@ file-service
 
 1. 创建 GitHub Organization、Team、仓库命名和权限规范。
 2. 建设 `platform-protos`，定义公共错误、身份、租户和审计上下文。
-3. 建设 `platform-go`，统一客户端、中间件和契约版本。
+3. 建设 `microservice-platform-go`，统一客户端、中间件和契约版本。
 4. 建设 `platform-helm` 与 `platform-gitops`，打通一个服务的交付闭环。
 5. 实现 identity、authorization、tenant 三个核心服务。
 6. 接入 audit，再实现 notification、file 和 config。

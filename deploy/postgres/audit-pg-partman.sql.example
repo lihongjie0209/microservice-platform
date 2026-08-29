@@ -1,0 +1,20 @@
+-- Run as the database owner after installing the pg_partman package on the server.
+-- Replace AUDIT_SCHEMA with the audit-service schema (normally "audit").
+CREATE EXTENSION IF NOT EXISTS pg_partman WITH SCHEMA partman;
+
+SELECT partman.create_parent(
+    p_parent_table := 'AUDIT_SCHEMA.audit_records',
+    p_control := 'occurred_at',
+    p_interval := '1 month',
+    p_premake := 3
+);
+
+UPDATE partman.part_config
+SET retention = '13 months',
+    retention_keep_table = false,
+    retention_keep_index = false,
+    infinite_time_partitions = true
+WHERE parent_table = 'AUDIT_SCHEMA.audit_records';
+
+-- Schedule this procedure with pg_cron, Kubernetes CronJob, or the DBA scheduler.
+CALL partman.run_maintenance_proc();

@@ -21,3 +21,29 @@ microservice-platform/
 详细规划见 [平台基础服务规划](docs/platform-services.md)。
 
 本地默认使用一个 PostgreSQL `platform` 数据库，并以独立角色和 `identity`、`tenant`、`authorization` schema 隔离服务数据。开发基础设施见 [本地环境](environments/local/README.md)。
+
+## 常用命令
+
+所有跨仓库命令由根目录 Makefile 统一入口管理，工具安装到工作区 `.tools/bin` 并固定版本：
+
+```bash
+make help
+make bootstrap
+make contracts
+make build
+make test
+make test-integration
+make lint
+make swagger-check
+make verify
+make infra-up
+make infra-down
+
+# 只操作一个服务
+make service-run SERVICE=tenant-service
+make service-test SERVICE=tenant-service
+make service-test-integration SERVICE=tenant-service
+make service-migrate-up SERVICE=tenant-service
+```
+
+每个独立服务仓库仍提供 `make build`、`make test-race`、`make test-integration`、`make migrate-up` 和 `make swagger-check`，离开总工作区也可以独立开发和验证。

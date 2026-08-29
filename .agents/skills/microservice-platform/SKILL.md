@@ -34,6 +34,11 @@ Use this workflow before changing any repository under this workspace.
 - Keep business DSN, migration URL, database name, schema, and migration table consistent in every profile, Compose, Kubernetes, tests, and generated projects.
 - Production does not automatically create schemas unless explicitly authorized. Compose may enable schema creation for development.
 - Pass `context.Context` to all database operations and use parameterized SQL.
+- Every mutable persistent table carries `version BIGINT NOT NULL DEFAULT 1`, `created_at`, `updated_at`, `created_by`, and `updated_by`. Use `TIMESTAMPTZ` for timestamps and `TEXT` for actor IDs. Authentication middleware injects the principal into context; application services explicitly construct and pass audit values to repositories. Do not hide actor attribution in database triggers.
+- Updates and soft deletes require the caller's expected version and use one atomic statement shaped as `... SET version = version + 1 ... WHERE id = ? AND version = ?`. Zero affected rows maps to the shared stale-version error. Use a distributed lock only for a measured cross-resource or cross-system invariant that optimistic database concurrency cannot protect; scope the key to the smallest business resource.
+- Prefer PostgreSQL `TEXT` for strings unless a length limit is a real domain invariant. A UI/display limit alone is not a database invariant.
+- Store instants as `TIMESTAMPTZ`; set database and connection session timezone to `Asia/Shanghai` so the platform presents values as UTC+08:00. Never use `TIMESTAMP WITHOUT TIME ZONE` to simulate a timezone.
+- Classify expected table growth before release. High-volume append-only tables require a partition key, retention window, archival destination, deletion ownership, and tested maintenance procedure. Native declarative partitioning belongs in service migrations; optional `pg_partman` automation belongs to DBA/deployment assets and must not be a hard runtime migration dependency.
 
 ## Contract rules
 
@@ -65,6 +70,9 @@ Good candidates:
 - gRPC client interceptors, authentication credentials, error conversion
 - frontend response envelope and pagination primitives
 - test fixtures for cross-cutting infrastructure
+- authenticated principal/audit context and HTTP/gRPC authentication/authorization interceptors
+- Redis distributed locking interfaces and the vetted Redsync adapter, including ownership-safe extend/release behavior
+- global application error codes, transport mappings, and optimistic-concurrency errors
 
 Keep these local:
 
