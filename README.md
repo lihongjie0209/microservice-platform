@@ -18,7 +18,7 @@ microservice-platform/
 
 先建设最小平台闭环：身份认证、权限、租户、审计、配置、通知和文件服务；业务服务通过统一契约和 SDK 接入。工作流、搜索、规则引擎等能力等到出现明确业务需求后再独立建设。
 
-详细规划见 [平台基础服务规划](docs/platform-services.md)。
+详细规划见 [平台基础服务规划](docs/platform-services.md)，已交付能力和审计证据见 [P0 完成矩阵](docs/completion-matrix.md)。
 
 本地默认使用一个 PostgreSQL `platform` 数据库，并以独立角色和 `identity`、`tenant`、`authorization` schema 隔离服务数据。开发基础设施见 [本地环境](environments/local/README.md)。
 
@@ -38,6 +38,8 @@ make swagger-check
 make verify
 make infra-up
 make infra-down
+make dev-up
+make system-test
 
 # 只操作一个服务
 make service-run SERVICE=tenant-service

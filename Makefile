@@ -20,7 +20,7 @@ SERVICE_DIR = services/$(SERVICE)
 	service-test-integration service-lint service-fmt service-swagger-check service-migrate-up \
 	service-migrate-down service-dev-up service-dev-down service-dev-logs \
 	build test test-integration lint swagger swagger-check verify \
-	delivery-check compose-check infra-up infra-down infra-logs infra-status clean clean-tools
+	delivery-check compose-check infra-up infra-down infra-logs infra-status dev-up dev-down dev-logs system-test clean clean-tools
 
 help:
 	@echo "Workspace commands:"
@@ -36,6 +36,8 @@ help:
 	@echo "  make verify                 Run contracts, unit tests, vet and OpenAPI checks"
 	@echo "  make delivery-check        Lint the shared Helm library chart"
 	@echo "  make compose-check         Validate the local Compose environment"
+	@echo "  make dev-up                Build and start infrastructure plus all P0 services"
+	@echo "  make system-test           Run the multi-service identity/tenant/auth/audit journey"
 	@echo ""
 	@echo "Single-service commands (SERVICE=$(firstword $(SERVICES))):"
 	@echo "  make service-run SERVICE=tenant-service"
@@ -135,6 +137,7 @@ delivery-check:
 
 compose-check:
 	docker compose -f environments/local/docker-compose.yml config -q
+	docker compose --profile platform -f environments/local/docker-compose.yml config -q
 
 infra-up:
 	docker compose -f environments/local/docker-compose.yml up -d --wait
@@ -147,6 +150,18 @@ infra-logs:
 
 infra-status:
 	docker compose -f environments/local/docker-compose.yml ps
+
+dev-up:
+	docker compose --profile platform -f environments/local/docker-compose.yml up --build -d --wait
+
+dev-down:
+	docker compose --profile platform -f environments/local/docker-compose.yml down --remove-orphans
+
+dev-logs:
+	docker compose --profile platform -f environments/local/docker-compose.yml logs -f
+
+system-test: dev-up
+	cd system-tests && go test -tags=system -count=1 -timeout=5m ./...
 
 clean:
 	@set -e; for service in $(SERVICES); do $(MAKE) -C services/$$service clean; done

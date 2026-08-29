@@ -1,0 +1,41 @@
+name: platform-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: platform-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  compose-and-system-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+          cache: false
+      - name: Check out independently versioned services
+        shell: bash
+        run: |
+          set -euo pipefail
+          for service in identity tenant authorization audit config notification file; do
+            git clone --depth=1 "https://github.com/lihongjie0209/${service}-service.git" "services/${service}-service"
+          done
+      - name: Validate Compose
+        run: make compose-check
+      - name: Run platform journey
+        run: make system-test
+      - name: Show service logs on failure
+        if: failure()
+        run: docker compose --profile platform -f environments/local/docker-compose.yml logs --no-color
+      - name: Stop platform
+        if: always()
+        run: make dev-down

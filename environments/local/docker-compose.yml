@@ -1,5 +1,34 @@
 name: microservice-platform-local
 
+x-platform-env: &platform-env
+  APP_ENV: compose
+  APP_HTTP_ADDRESS: 0.0.0.0:8080
+  APP_GRPC_ADDRESS: 0.0.0.0:9090
+  APP_DATABASE_ENABLED: "true"
+  APP_DATABASE_TYPE: postgres
+  APP_DATABASE_NAME: platform
+  APP_REDIS_ENABLED: "true"
+  APP_REDIS_ADDRESS: redis:6379
+  APP_MIGRATION_AUTO_UP: "true"
+  APP_MIGRATION_CREATE_SCHEMA: "false"
+  APP_MIGRATION_PATH: /app/migrations/postgres
+  APP_EVENT_BUS_ENABLED: "true"
+  APP_EVENT_BUS_URLS: nats://nats:4222
+  # All platform.* events belong to one JetStream stream. Consumers use
+  # independent durable names; services must not create overlapping streams.
+  APP_EVENT_BUS_STREAM_NAME: PLATFORM_EVENTS
+  APP_AUTH_ISSUER: identity-service
+
+x-platform-dependencies: &platform-dependencies
+  postgres-bootstrap: {condition: service_completed_successfully}
+  redis: {condition: service_healthy}
+  nats: {condition: service_healthy}
+
+x-platform-service: &platform-service
+  profiles: [platform]
+  restart: unless-stopped
+  depends_on: *platform-dependencies
+
 services:
   postgres:
     image: postgres:17-alpine
@@ -17,6 +46,28 @@ services:
       interval: 3s
       timeout: 3s
       retries: 30
+
+  postgres-bootstrap:
+    image: postgres:17-alpine
+    profiles: [platform]
+    depends_on:
+      postgres: {condition: service_healthy}
+    environment:
+      PGPASSWORD: platform-admin-dev
+    volumes:
+      - ./postgres/init/001-platform.sql:/bootstrap/001-platform.sql:ro
+    command:
+      - psql
+      - -h
+      - postgres
+      - -U
+      - platform_admin
+      - -d
+      - platform
+      - -v
+      - ON_ERROR_STOP=1
+      - -f
+      - /bootstrap/001-platform.sql
 
   mysql:
     image: mysql:8.4
@@ -79,6 +130,130 @@ services:
       interval: 3s
       timeout: 3s
       retries: 30
+
+  minio-init:
+    image: minio/minio:RELEASE.2025-07-23T15-54-02Z
+    profiles: [platform]
+    depends_on:
+      minio: {condition: service_healthy}
+    entrypoint: [/bin/sh, -c]
+    command:
+      - mc alias set local http://minio:9000 platform-minio platform-minio-dev && mc mb --ignore-existing local/platform-files
+
+  identity-service:
+    <<: *platform-service
+    build: {context: ../../services/identity-service, args: {GOPROXY: "${GOPROXY:-https://goproxy.cn,direct}"}}
+    ports: ["18081:8080", "19081:9090"]
+    environment:
+      <<: *platform-env
+      APP_DATABASE_SCHEMA: identity
+      APP_DATABASE_DSN: postgres://identity_service:identity-dev@postgres:5432/platform?sslmode=disable&search_path=identity
+      APP_MIGRATION_DATABASE_URL: postgres://identity_service:identity-dev@postgres:5432/platform?sslmode=disable&search_path=identity
+      APP_MIGRATION_TABLE: identity_schema_migrations
+      APP_JWT_SECRET: local-identity-signing-secret-000000000000
+
+  tenant-service:
+    <<: *platform-service
+    build: {context: ../../services/tenant-service, args: {GOPROXY: "${GOPROXY:-https://goproxy.cn,direct}"}}
+    ports: ["18082:8080", "19082:9090"]
+    depends_on:
+      <<: *platform-dependencies
+      identity-service: {condition: service_healthy}
+    environment:
+      <<: *platform-env
+      APP_DATABASE_SCHEMA: tenant
+      APP_DATABASE_DSN: postgres://tenant_service:tenant-dev@postgres:5432/platform?sslmode=disable&search_path=tenant
+      APP_MIGRATION_DATABASE_URL: postgres://tenant_service:tenant-dev@postgres:5432/platform?sslmode=disable&search_path=tenant
+      APP_MIGRATION_TABLE: tenant_schema_migrations
+      APP_AUTH_JWKS_URL: http://identity-service:8080/.well-known/jwks.json
+      APP_AUTH_AUDIENCE: tenant-service
+
+  authorization-service:
+    <<: *platform-service
+    build: {context: ../../services/authorization-service, args: {GOPROXY: "${GOPROXY:-https://goproxy.cn,direct}"}}
+    ports: ["18083:8080", "19083:9090"]
+    depends_on:
+      <<: *platform-dependencies
+      identity-service: {condition: service_healthy}
+    environment:
+      <<: *platform-env
+      APP_DATABASE_SCHEMA: authorization
+      APP_DATABASE_DSN: postgres://authorization_service:authorization-dev@postgres:5432/platform?sslmode=disable&search_path=authorization
+      APP_MIGRATION_DATABASE_URL: postgres://authorization_service:authorization-dev@postgres:5432/platform?sslmode=disable&search_path=authorization
+      APP_MIGRATION_TABLE: authorization_schema_migrations
+      APP_AUTH_JWKS_URL: http://identity-service:8080/.well-known/jwks.json
+      APP_AUTH_AUDIENCE: authorization-service
+
+  audit-service:
+    <<: *platform-service
+    build: {context: ../../services/audit-service, args: {GOPROXY: "${GOPROXY:-https://goproxy.cn,direct}"}}
+    ports: ["18084:8080", "19084:9090"]
+    depends_on:
+      <<: *platform-dependencies
+      identity-service: {condition: service_healthy}
+    environment:
+      <<: *platform-env
+      APP_DATABASE_SCHEMA: audit
+      APP_DATABASE_DSN: postgres://audit_service:audit-dev@postgres:5432/platform?sslmode=disable&search_path=audit
+      APP_MIGRATION_DATABASE_URL: postgres://audit_service:audit-dev@postgres:5432/platform?sslmode=disable&search_path=audit
+      APP_MIGRATION_TABLE: audit_schema_migrations
+      APP_AUTH_JWKS_URL: http://identity-service:8080/.well-known/jwks.json
+      APP_AUTH_AUDIENCE: audit-service
+
+  config-service:
+    <<: *platform-service
+    build: {context: ../../services/config-service, args: {GOPROXY: "${GOPROXY:-https://goproxy.cn,direct}"}}
+    ports: ["18085:8080", "19085:9090"]
+    depends_on:
+      <<: *platform-dependencies
+      identity-service: {condition: service_healthy}
+    environment:
+      <<: *platform-env
+      APP_DATABASE_SCHEMA: config
+      APP_DATABASE_DSN: postgres://config_service:config-dev@postgres:5432/platform?sslmode=disable&search_path=config
+      APP_MIGRATION_DATABASE_URL: postgres://config_service:config-dev@postgres:5432/platform?sslmode=disable&search_path=config
+      APP_MIGRATION_TABLE: config_schema_migrations
+      APP_AUTH_JWKS_URL: http://identity-service:8080/.well-known/jwks.json
+      APP_AUTH_AUDIENCE: config-service
+
+  notification-service:
+    <<: *platform-service
+    build: {context: ../../services/notification-service, args: {GOPROXY: "${GOPROXY:-https://goproxy.cn,direct}"}}
+    ports: ["18086:8080", "19086:9090"]
+    depends_on:
+      <<: *platform-dependencies
+      identity-service: {condition: service_healthy}
+    environment:
+      <<: *platform-env
+      APP_DATABASE_SCHEMA: notification
+      APP_DATABASE_DSN: postgres://notification_service:notification-dev@postgres:5432/platform?sslmode=disable&search_path=notification
+      APP_MIGRATION_DATABASE_URL: postgres://notification_service:notification-dev@postgres:5432/platform?sslmode=disable&search_path=notification
+      APP_MIGRATION_TABLE: notification_schema_migrations
+      APP_AUTH_JWKS_URL: http://identity-service:8080/.well-known/jwks.json
+      APP_AUTH_AUDIENCE: notification-service
+
+  file-service:
+    <<: *platform-service
+    build: {context: ../../services/file-service, args: {GOPROXY: "${GOPROXY:-https://goproxy.cn,direct}"}}
+    ports: ["18087:8080", "19087:9090"]
+    depends_on:
+      <<: *platform-dependencies
+      identity-service: {condition: service_healthy}
+      minio-init: {condition: service_completed_successfully}
+    environment:
+      <<: *platform-env
+      APP_DATABASE_SCHEMA: file
+      APP_DATABASE_DSN: postgres://file_service:file-dev@postgres:5432/platform?sslmode=disable&search_path=file
+      APP_MIGRATION_DATABASE_URL: postgres://file_service:file-dev@postgres:5432/platform?sslmode=disable&search_path=file
+      APP_MIGRATION_TABLE: file_schema_migrations
+      APP_AUTH_JWKS_URL: http://identity-service:8080/.well-known/jwks.json
+      APP_AUTH_AUDIENCE: file-service
+      APP_OBJECT_STORAGE_ENABLED: "true"
+      APP_OBJECT_STORAGE_ENDPOINT: minio:9000
+      APP_OBJECT_STORAGE_ACCESS_KEY: platform-minio
+      APP_OBJECT_STORAGE_SECRET_KEY: platform-minio-dev
+      APP_OBJECT_STORAGE_BUCKET: platform-files
+
 
 volumes:
   postgres-data:

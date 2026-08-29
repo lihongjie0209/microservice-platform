@@ -2,23 +2,46 @@ REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 
 ALTER DATABASE platform SET timezone TO 'Asia/Shanghai';
 
-CREATE ROLE identity_service LOGIN PASSWORD 'identity-dev';
-CREATE ROLE tenant_service LOGIN PASSWORD 'tenant-dev';
-CREATE ROLE authorization_service LOGIN PASSWORD 'authorization-dev';
-CREATE ROLE audit_service LOGIN PASSWORD 'audit-dev';
-CREATE ROLE config_service LOGIN PASSWORD 'config-dev';
-CREATE ROLE notification_service LOGIN PASSWORD 'notification-dev';
-CREATE ROLE file_service LOGIN PASSWORD 'file-dev';
+DO $$
+DECLARE
+    role_name text;
+BEGIN
+    FOREACH role_name IN ARRAY ARRAY[
+        'identity_service', 'tenant_service', 'authorization_service',
+        'audit_service', 'config_service', 'notification_service', 'file_service'
+    ] LOOP
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = role_name) THEN
+            EXECUTE format('CREATE ROLE %I LOGIN', role_name);
+        END IF;
+    END LOOP;
+END
+$$;
+
+ALTER ROLE identity_service LOGIN PASSWORD 'identity-dev';
+ALTER ROLE tenant_service LOGIN PASSWORD 'tenant-dev';
+ALTER ROLE authorization_service LOGIN PASSWORD 'authorization-dev';
+ALTER ROLE audit_service LOGIN PASSWORD 'audit-dev';
+ALTER ROLE config_service LOGIN PASSWORD 'config-dev';
+ALTER ROLE notification_service LOGIN PASSWORD 'notification-dev';
+ALTER ROLE file_service LOGIN PASSWORD 'file-dev';
 
 GRANT CONNECT ON DATABASE platform TO identity_service, tenant_service, authorization_service, audit_service, config_service, notification_service, file_service;
 
-CREATE SCHEMA "identity" AUTHORIZATION identity_service;
-CREATE SCHEMA "tenant" AUTHORIZATION tenant_service;
-CREATE SCHEMA "authorization" AUTHORIZATION authorization_service;
-CREATE SCHEMA "audit" AUTHORIZATION audit_service;
-CREATE SCHEMA "config" AUTHORIZATION config_service;
-CREATE SCHEMA "notification" AUTHORIZATION notification_service;
-CREATE SCHEMA "file" AUTHORIZATION file_service;
+CREATE SCHEMA IF NOT EXISTS "identity" AUTHORIZATION identity_service;
+CREATE SCHEMA IF NOT EXISTS "tenant" AUTHORIZATION tenant_service;
+CREATE SCHEMA IF NOT EXISTS "authorization" AUTHORIZATION authorization_service;
+CREATE SCHEMA IF NOT EXISTS "audit" AUTHORIZATION audit_service;
+CREATE SCHEMA IF NOT EXISTS "config" AUTHORIZATION config_service;
+CREATE SCHEMA IF NOT EXISTS "notification" AUTHORIZATION notification_service;
+CREATE SCHEMA IF NOT EXISTS "file" AUTHORIZATION file_service;
+
+ALTER SCHEMA "identity" OWNER TO identity_service;
+ALTER SCHEMA "tenant" OWNER TO tenant_service;
+ALTER SCHEMA "authorization" OWNER TO authorization_service;
+ALTER SCHEMA "audit" OWNER TO audit_service;
+ALTER SCHEMA "config" OWNER TO config_service;
+ALTER SCHEMA "notification" OWNER TO notification_service;
+ALTER SCHEMA "file" OWNER TO file_service;
 
 REVOKE ALL ON SCHEMA "identity", "tenant", "authorization", "audit", "config", "notification", "file" FROM PUBLIC;
 GRANT USAGE, CREATE ON SCHEMA "identity" TO identity_service;

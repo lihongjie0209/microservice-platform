@@ -10,6 +10,7 @@
 - Frontend clients use service-owned POST+JSON APIs with a uniform response envelope.
 - Services use versioned gRPC contracts from `platform-protos` for synchronous calls.
 - Domain events use NATS JetStream with versioned subjects and shared envelopes.
+- All `platform.>` domain subjects belong to the single `PLATFORM_EVENTS` JetStream stream. Services may idempotently provision the same stream; independent processing is represented by durable consumer names, never overlapping streams.
 - The only platform event wire format is protobuf `platform.common.v1.EventEnvelope`; JSON broker envelopes are not allowed on `platform.>` subjects.
 - `identity-service` is the only platform token issuer. Other services verify EdDSA access tokens from its JWKS endpoint through `platform-go`, validating issuer and service-specific audience; they never expose credential login endpoints.
 

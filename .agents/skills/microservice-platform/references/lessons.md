@@ -184,3 +184,33 @@
 - Symptom: a shared SDK tag was created after a shell sequence continued past a failed test compilation.
 - Root cause: the release command did not use fail-fast chaining and validation did not consume the published dependency as an external module.
 - Prevention: release recipes use `set -e` or `&&`, run unit/race/vet before tagging, then verify a clean consumer against the published version; publish a new patch version instead of moving a bad tag.
+
+## 2026-08-30: non-root images must provision writable runtime paths
+
+- Symptom: services passed unit tests and built successfully but restarted in Compose because the non-root user could not create `/app/logs`.
+- Root cause: the image copied read-only application assets but did not create and transfer ownership of configured writable directories before switching users.
+- Prevention: create every local runtime path during image build, assign it to the runtime user, and include a real container startup journey in platform CI.
+
+## 2026-08-30: database init directories do not reconcile existing volumes
+
+- Symptom: early services connected to a shared PostgreSQL volume while later services failed password authentication even though their roles were present in the current init SQL.
+- Root cause: the official PostgreSQL entrypoint runs `/docker-entrypoint-initdb.d` only when initializing an empty data directory.
+- Prevention: keep first-boot SQL idempotent and run a non-destructive bootstrap job on every development platform start to reconcile roles, passwords, schemas, ownership, grants, timezone, and search paths.
+
+## 2026-08-30: JetStream subject ownership is exclusive across streams
+
+- Symptom: independently healthy services failed startup with NATS error 10065 because each tried to provision a differently named stream covering `platform.>`.
+- Root cause: JetStream does not allow overlapping subjects in separate streams; shared broker subjects were configured without a single stream owner/name.
+- Prevention: assign all platform domain subjects to one consistently named stream, let provisioning remain idempotent, and isolate consumers with durable names rather than overlapping streams.
+
+## 2026-08-30: skipped authentication does not create an audit actor
+
+- Symptom: an unauthenticated bootstrap registration reached the handler but failed with “authenticated actor is required”.
+- Root cause: bypassing authentication intentionally leaves principal context empty while the service correctly requires actor attribution for persisted mutations.
+- Prevention: bootstrap mutations use a narrowly scoped development PSK or a controlled administrative identity; never weaken the global audit invariant to make a public route work.
+
+## 2026-08-30: Swagger generation warnings can hide incomplete schemas
+
+- Symptom: `swag` exited successfully while reducing a request containing `json.RawMessage` to an empty object definition.
+- Root cause: the generator could not infer the standard-library alias as an OpenAPI model but treated the parse error as a warning.
+- Prevention: annotate opaque JSON fields with `swaggertype:"object"`, inspect generator output, and retain generated-document consistency checks.
