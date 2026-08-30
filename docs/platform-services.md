@@ -188,8 +188,9 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 ### webhook-service
 
 - 外部订阅、签名、投递、重试和回放
-- 与内部事件总线隔离
-- 可在 notification-service 复杂度上升后拆出
+- 消费中央 JetStream 事件但使用独立 durable 与事务 Inbox，不让外部回调反向耦合业务服务
+- 每订阅独立加密密钥、HMAC 验签、SSRF/DNS rebinding 防护和可配置保留清理
+- 已作为独立服务实现，notification-service 不承担通用外部投递职责
 
 ## P2：规模化阶段
 
@@ -234,6 +235,8 @@ scheduler-service
 swagger-service
 application-service
 dictionary-service
+service-registry-service
+webhook-service
 ```
 
 `microgen` 当前仍在模板仓库中，稳定后再拆成独立仓库发布二进制。

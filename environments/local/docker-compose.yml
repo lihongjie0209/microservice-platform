@@ -318,6 +318,23 @@ services:
       APP_AUTH_PSK_ENABLED: "true"
       APP_AUTH_PSK_KEY: registry-dev-psk-00000000000000000000
 
+  webhook-service:
+    <<: *platform-service
+    build: {context: ../../services/webhook-service, args: {GOPROXY: "${GOPROXY:-https://goproxy.cn,direct}"}}
+    ports: ["18093:8080", "19093:9090"]
+    depends_on:
+      <<: *platform-dependencies
+      identity-service: {condition: service_healthy}
+    environment:
+      <<: *platform-env
+      APP_DATABASE_SCHEMA: webhook
+      APP_DATABASE_DSN: postgres://webhook_service:webhook-dev@postgres:5432/platform?sslmode=disable&search_path=webhook
+      APP_MIGRATION_DATABASE_URL: postgres://webhook_service:webhook-dev@postgres:5432/platform?sslmode=disable&search_path=webhook
+      APP_MIGRATION_TABLE: webhook_schema_migrations
+      APP_AUTH_JWKS_URL: http://identity-service:8080/.well-known/jwks.json
+      APP_AUTH_AUDIENCE: webhook-service
+      APP_WEBHOOK_ENCRYPTION_KEY: d2ViaG9vay1kZXYta2V5LTMyLWJ5dGVzLWxvbmchISE=
+
   swagger-service:
     profiles: [platform]
     restart: unless-stopped
@@ -335,6 +352,7 @@ services:
       application-service: {condition: service_healthy}
       dictionary-service: {condition: service_healthy}
       service-registry-service: {condition: service_healthy}
+      webhook-service: {condition: service_healthy}
     environment:
       APP_ENV: compose
       APP_HTTP_ADDRESS: 0.0.0.0:8080

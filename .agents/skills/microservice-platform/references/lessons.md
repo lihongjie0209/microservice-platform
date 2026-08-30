@@ -239,6 +239,18 @@
 - Root cause: Service list/watch proves discoverability only; it does not grant workload network access or application authentication.
 - Prevention: enable the protected internal document endpoint, forward a valid multi-audience caller token, allow only swagger-service ingress on the document port, and test discovery plus document retrieval together.
 
+## 2026-08-30: template-only markers must be removed as complete lines
+
+- Symptom: a generated GitHub Actions step was indented into the preceding multiline shell command and the workflow became invalid YAML.
+- Root cause: the generator removed marker text starting at the marker token, but preserved whitespace before an indented marker line.
+- Prevention: when a marker occupies a whitespace-only line, remove the whole start/end marker lines and enclosed block; retain an exact regression for the generated YAML boundary.
+
+## 2026-08-30: configuration wrappers must mirror coupled runtime invariants
+
+- Symptom: the service configuration accepted a JetStream ack wait shorter than the platform consumer handler timeout, then failed only while starting the consumer.
+- Root cause: the service-local wrapper exposed only part of the shared SDK options and therefore could not validate their relationship.
+- Prevention: mirror every coupled SDK option at the configuration boundary, validate cross-field invariants before Fx startup, and cover the invalid combination with a unit test.
+
 ## 2026-08-30: PostgreSQL text preference is not a portable MySQL indexing rule
 
 - Symptom: an application-service migration passed PostgreSQL but MySQL rejected `TEXT DEFAULT ''`; indexed and unique `TEXT` columns would also require prefix lengths.
