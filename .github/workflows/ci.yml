@@ -29,6 +29,7 @@ jobs:
           for service in identity tenant authorization audit config notification file scheduler swagger application dictionary; do
             git clone --depth=1 "https://github.com/lihongjie0209/${service}-service.git" "services/${service}-service"
           done
+          git clone --depth=1 "https://github.com/lihongjie0209/service-registry-service.git" "services/service-registry-service"
       - name: Validate Compose
         run: make compose-check
       - name: Run platform journey
