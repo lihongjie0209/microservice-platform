@@ -22,7 +22,7 @@
 ## 共享资产与交付
 
 - `platform-protos` 是 gRPC 与事件 Proto 的唯一来源，执行 Buf lint、生成一致性和 breaking 检查。
-- `platform-go` 维护主体/审计上下文、JWT/JWKS/PSK 拦截器、统一授权、全局错误码、Redsync 分布式锁、JetStream 可靠消费/重试/死信、事务 outbox、动态配置客户端、注册/发现缓存与故障恢复 SDK 和敏感字段脱敏。
+- `platform-go` 维护主体/审计上下文、JWT/JWKS/PSK 拦截器、统一授权、全局错误码、Redsync 分布式锁、JetStream 可靠消费/重试/死信、事务 Inbox/Outbox、动态配置客户端、注册/发现缓存与故障恢复 SDK 和敏感字段脱敏。Inbox 与本服务领域写入共享事务，失败回滚领域副作用并保留尝试记录，重复投递不会重复执行处理函数。
 - 所有服务使用独立 PostgreSQL Schema、角色和迁移表；Compose bootstrap 对新旧数据卷均幂等协调账号、密码、所有权和 search_path。
 - 服务镜像使用非 root 用户，预创建可写日志目录，并通过 ldflags 注入版本、Git commit 和构建时间。
 - Helm Library Chart 与 GitOps ApplicationSet 覆盖全部平台服务的 Service、Deployment、启动前迁移 initContainer、探针、HPA、PDB、NetworkPolicy、ExternalSecret、Swagger 发现和显式 APISIX 路由；服务能力与环境配置分层维护。
