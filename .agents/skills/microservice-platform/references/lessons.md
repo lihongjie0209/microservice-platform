@@ -340,3 +340,9 @@
 - Symptom: authenticated search queries still failed because authorization-service rejected `page_size=200` while its maximum is 100.
 - Root cause: the consumer chose a private batch size instead of the provider's published pagination invariant.
 - Prevention: bind outbound pagination to the shared/provider contract limit and assert the exact request page size in the client unit test.
+
+## 2026-08-31: platform CI must check out every Compose build context
+
+- Symptom: local `make system-test` passed, but GitHub CI failed before building because `services/search-service` did not exist.
+- Root cause: the coordination repository excludes independent service checkouts and the CI clone allow-list was not extended with the new Compose service.
+- Prevention: add every new service to the CI checkout list in the same platform integration commit and keep Compose validation after checkout.
