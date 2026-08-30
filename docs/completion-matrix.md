@@ -1,6 +1,6 @@
 # P0 平台完成与审计矩阵
 
-审计日期：2026-08-30。本文记录可重复验证的 P0 交付证据；P1/P2 是按真实业务增长触发的候选能力，不属于预建空壳范围。
+审计日期：2026-08-31。本文记录可重复验证的已交付能力；后续能力按真实业务增长触发，不预建无边界空壳。
 
 ## 服务能力
 
@@ -18,6 +18,7 @@
 | application | 应用目录、菜单草稿/发布、租户应用授权 | 应用、菜单版本和授权管理契约 | 应用、菜单发布、租户授权事件 + outbox | 菜单不可变发布快照、授权乐观锁、权限码引用 |
 | dictionary | 静态字典、版本发布、分页/搜索/树/编码解析和 Provider 查询 | 字典管理与通用动态 Provider 数据面 | 字典发布和 Provider 变更事件 + outbox | 静态版本快照；动态数据由业务服务拥有并通过注册中心发现 |
 | service-registry | 服务与实例查询管理页面接口 | 注册、续租、draining、注销、发现和 revision Watch | Redis Stream 作为可恢复的实例变更流 | Redis Lua 原子租约、令牌摘要、TTL、索引；无业务数据库 |
+| workflow | 定义、发布、实例和我的任务页面接口 | 完整工作流管理契约；服务任务动态调用内部 gRPC | 状态/任务事件 + Outbox；命令 durable consumer 驱动 Temporal | 发布快照、实例/任务乐观锁、审计主体、Temporal 幂等与补偿 |
 
 ## 共享资产与交付
 
@@ -26,14 +27,14 @@
 - 所有服务使用独立 PostgreSQL Schema、角色和迁移表；Compose bootstrap 对新旧数据卷均幂等协调账号、密码、所有权和 search_path。
 - 服务镜像使用非 root 用户，预创建可写日志目录，并通过 ldflags 注入版本、Git commit 和构建时间。
 - Helm Library Chart 与 GitOps ApplicationSet 覆盖全部平台服务的 Service、Deployment、启动前迁移 initContainer、探针、HPA、PDB、NetworkPolicy、ExternalSecret、Swagger 发现和显式 APISIX 路由；服务能力与环境配置分层维护。
-- 本地 `platform` Compose Profile 包含 PostgreSQL、MySQL、Redis、NATS JetStream、MinIO 和全部 P0 服务；不包含非必需的可观测性后端。
+- 本地 `platform` Compose Profile 包含 PostgreSQL、MySQL、Redis、NATS JetStream、MinIO、Temporal 和全部已交付平台服务；不包含非必需的可观测性后端或 Temporal Web UI。
 
 ## 验证证据
 
 ```text
 make verify            PASS  # race、vet、Proto、Swagger、Helm、Compose
 make test-integration  PASS  # SDK + 各服务的隔离 Testcontainers 测试
-system-tests           PASS  # PSK -> JWT -> tenant -> authorization -> NATS -> audit -> scheduler -> registry -> dynamic dictionary -> Swagger
+system-tests           PASS  # PSK -> JWT -> tenant -> authorization -> NATS -> audit -> scheduler -> registry -> dynamic dictionary -> workflow -> Swagger
 ```
 
 每个服务的单元/集成测试均可独立运行，不要求其他服务在线。多服务旅程只存在于平台级 `system-tests`。CI 会重新克隆各独立服务仓库后运行 Compose 和系统测试，防止本地 workspace 替换掩盖发布问题。
@@ -47,6 +48,6 @@ system-tests           PASS  # PSK -> JWT -> tenant -> authorization -> NATS -> 
 - 匿名注册缺少审计主体：Compose 系统引导改用受限 PSK，生产不开放。
 - Swagger 无法展开 `json.RawMessage`：增加对象模型标注并重新生成完整审计请求文档。
 
-## 非 P0 范围
+## 尚未建设的增长能力
 
-API Gateway、Temporal 工作流、跨域搜索、外部 webhook、计量计费等仍按 `platform-services.md` 的 P1/P2 触发条件建设。它们需要真实业务边界和容量目标，不应为了“看起来完整”提前部署空服务。
+跨域搜索、计量和计费仍按 `platform-services.md` 的 P1/P2 触发条件建设。它们需要真实业务边界和容量目标，不应为了“看起来完整”提前部署空服务。

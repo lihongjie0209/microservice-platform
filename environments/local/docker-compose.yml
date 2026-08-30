@@ -114,6 +114,23 @@ services:
       timeout: 3s
       retries: 30
 
+  temporal:
+    image: temporalio/auto-setup:1.29.7
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: platform_admin
+      POSTGRES_PWD: platform-admin-dev
+      POSTGRES_SEEDS: postgres
+    ports: ["7233:7233"]
+    depends_on:
+      postgres: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, tctl, --address, temporal:7233, cluster, health]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+
   minio:
     image: minio/minio:RELEASE.2025-07-23T15-54-02Z
     command: [server, /data, --console-address, ":9001"]
@@ -335,6 +352,26 @@ services:
       APP_AUTH_AUDIENCE: webhook-service
       APP_WEBHOOK_ENCRYPTION_KEY: d2ViaG9vay1kZXYta2V5LTMyLWJ5dGVzLWxvbmchISE=
 
+  workflow-service:
+    <<: *platform-service
+    build: {context: ../../services/workflow-service, args: {GOPROXY: "${GOPROXY:-https://goproxy.cn,direct}"}}
+    ports: ["18094:8080", "19094:9090"]
+    depends_on:
+      <<: *platform-dependencies
+      identity-service: {condition: service_healthy}
+      authorization-service: {condition: service_healthy}
+      temporal: {condition: service_healthy}
+    environment:
+      <<: *platform-env
+      APP_DATABASE_SCHEMA: workflow
+      APP_DATABASE_DSN: postgres://workflow_service:workflow-dev@postgres:5432/platform?sslmode=disable&search_path=workflow
+      APP_MIGRATION_DATABASE_URL: postgres://workflow_service:workflow-dev@postgres:5432/platform?sslmode=disable&search_path=workflow
+      APP_MIGRATION_TABLE: workflow_schema_migrations
+      APP_AUTH_JWKS_URL: http://identity-service:8080/.well-known/jwks.json
+      APP_AUTH_AUDIENCE: workflow-service
+      APP_TEMPORAL_ENABLED: "true"
+      APP_TEMPORAL_HOST_PORT: temporal:7233
+
   swagger-service:
     profiles: [platform]
     restart: unless-stopped
@@ -353,6 +390,7 @@ services:
       dictionary-service: {condition: service_healthy}
       service-registry-service: {condition: service_healthy}
       webhook-service: {condition: service_healthy}
+      workflow-service: {condition: service_healthy}
     environment:
       APP_ENV: compose
       APP_HTTP_ADDRESS: 0.0.0.0:8080

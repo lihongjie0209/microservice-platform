@@ -15,8 +15,18 @@ data:
   APP_EVENT_BUS_ENABLED: {{ .Values.eventBus.enabled | quote }}
   APP_EVENT_BUS_URLS: {{ .Values.eventBus.urls | quote }}
   APP_EVENT_BUS_STREAM_NAME: {{ .Values.eventBus.streamName | quote }}
+  APP_AUTH_JWKS_URL: {{ printf "http://identity-service.%s.svc.cluster.local:8080/.well-known/jwks.json" .Values.namespace | quote }}
+  APP_AUTH_ISSUER: {{ .Values.auth.issuer | quote }}
+  APP_AUTH_AUDIENCE: {{ .Values.name | quote }}
   APP_OBSERVABILITY_METRICS_ENABLED: "true"
   APP_MIGRATION_AUTO_UP: "false"
   APP_MIGRATION_CREATE_SCHEMA: "false"
   APP_MIGRATION_PATH: /app/migrations/postgres
   APP_MIGRATION_TABLE: {{ .Values.database.migrationTable | quote }}
+  {{- if .Values.workflow.enabled }}
+  APP_TEMPORAL_ENABLED: "true"
+  APP_TEMPORAL_HOST_PORT: {{ .Values.workflow.temporalHostPort | quote }}
+  APP_TEMPORAL_NAMESPACE: {{ .Values.workflow.temporalNamespace | quote }}
+  APP_TEMPORAL_TASK_QUEUE: {{ .Values.workflow.temporalTaskQueue | quote }}
+  APP_OUTBOUND_GRPC_AUTHORIZATION_TARGET: {{ printf "dns:///authorization-service.%s.svc.cluster.local:9090" .Values.namespace | quote }}
+  {{- end }}

@@ -175,9 +175,10 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 
 ### workflow-service
 
-- 长事务、人工审批、超时和补偿
-- 优先评估 Temporal，避免自行实现可靠状态机
-- 仅在多个业务明确需要流程编排时建设
+- 已实现流程定义草稿、不可变发布版本、实例、人工任务、超时、条件分支、服务任务和逆序补偿
+- Temporal 负责持久执行与重试；状态与运行命令通过事务 Outbox 写入 NATS JetStream，由 durable consumer 幂等启动、通知和取消流程
+- 页面使用独立 POST+JSON DTO，内部使用中央 `platform.workflow.v1` gRPC 合约；服务任务通过共享动态 Reflection SDK 调用受控上游
+- 任务角色由 authorization-service 解析，客户端不得提交可信角色；所有写操作受 tenant、actor、审计字段和乐观版本约束
 
 ### search-service
 
@@ -208,7 +209,7 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 
 - PostgreSQL/Kingbase/MySQL
 - Redis
-- Kafka、NATS JetStream 或 RocketMQ（三选一作为主要事件总线）
+- NATS JetStream（平台统一事件总线）
 - S3 兼容对象存储
 - Kubernetes、Ingress/API Gateway
 - Prometheus、日志平台和 OpenTelemetry 后端

@@ -12,6 +12,11 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	identityv1 "github.com/lihongjie0209/platform-protos/gen/go/platform/identity/v1"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 )
 
 type response struct {
@@ -32,7 +37,8 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	swaggerURL := serviceURL("SWAGGER", "http://127.0.0.1:18089")
 	applicationURL := serviceURL("APPLICATION", "http://127.0.0.1:18090")
 	dictionaryURL := serviceURL("DICTIONARY", "http://127.0.0.1:18091")
-	for _, baseURL := range []string{identityURL, tenantURL, authorizationURL, auditURL, schedulerURL, swaggerURL, applicationURL, dictionaryURL} {
+	workflowURL := serviceURL("WORKFLOW", "http://127.0.0.1:18094")
+	for _, baseURL := range []string{identityURL, tenantURL, authorizationURL, auditURL, schedulerURL, swaggerURL, applicationURL, dictionaryURL, workflowURL} {
 		waitReady(t, ctx, baseURL)
 	}
 	suffix := fmt.Sprint(time.Now().UnixNano())
@@ -62,6 +68,7 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	}
 	decodeBody(t, createdTenant, &tenantResult)
 	tenantID := tenantResult.Tenant.ID
+	tokens.AccessToken = issueTenantToken(t, ctx, serviceURL("IDENTITY_GRPC", "127.0.0.1:19081"), tokens.AccessToken, user.ID, tenantID, tenantResult.OwnerMembership.ID)
 	organizationResponse := post(t, ctx, tenantURL+"/api/v1/organization-units/create", tokens.AccessToken, map[string]any{"tenant_id": tenantID, "code": "engineering", "name": "Engineering"})
 	var organization struct {
 		Code string `json:"code"`
@@ -119,6 +126,26 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 		t.Fatalf("tenant application grant was not active: %+v", checks)
 	}
 	post(t, ctx, applicationURL+"/api/v1/applications/navigation/get", tokens.AccessToken, map[string]any{"application_id": application.ID})
+	definitionResponse := post(t, ctx, workflowURL+"/api/v1/workflow/definitions/create", tokens.AccessToken, map[string]any{
+		"tenant_id": tenantID, "application_id": application.ID, "key": "system_" + suffix, "name": "System Workflow",
+		"nodes": []map[string]any{{"id": "start", "name": "Start", "type": "start"}, {"id": "end", "name": "End", "type": "end"}},
+		"edges": []map[string]any{{"from_node_id": "start", "to_node_id": "end", "priority": 1}},
+	})
+	var definition struct {
+		ID      string `json:"id"`
+		Key     string `json:"key"`
+		Version int64  `json:"version"`
+	}
+	decodeBody(t, definitionResponse, &definition)
+	post(t, ctx, workflowURL+"/api/v1/workflow/definitions/publish", tokens.AccessToken, map[string]any{"id": definition.ID, "tenant_id": tenantID, "expected_version": definition.Version})
+	instanceResponse := post(t, ctx, workflowURL+"/api/v1/workflow/instances/start", tokens.AccessToken, map[string]any{
+		"tenant_id": tenantID, "definition_key": definition.Key, "business_key": "system-" + suffix, "title": "System workflow", "variables_json": `{}`, "idempotency_key": "system-" + suffix,
+	})
+	var instance struct {
+		ID string `json:"id"`
+	}
+	decodeBody(t, instanceResponse, &instance)
+	waitWorkflowCompleted(t, ctx, workflowURL, tokens.AccessToken, tenantID, instance.ID)
 	permissionResponse := post(t, ctx, authorizationURL+"/api/v1/authorization/permissions/create", tokens.AccessToken, map[string]any{"tenant_id": tenantID, "code": "orders.read", "name": "Read orders", "resource_type": "order", "action": "read"})
 	var permission struct {
 		ID string `json:"id"`
@@ -177,8 +204,48 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	getContains(t, ctx, swaggerURL+"/swagger/services", "scheduler-service")
 	getContains(t, ctx, swaggerURL+"/swagger/services", "application-service")
 	getContains(t, ctx, swaggerURL+"/swagger/services", "dictionary-service")
+	getContains(t, ctx, swaggerURL+"/swagger/services", "workflow-service")
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/identity-service")
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/dictionary-service")
+	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/workflow-service")
+}
+
+func issueTenantToken(t *testing.T, ctx context.Context, target, token, userID, tenantID, membershipID string) string {
+	t.Helper()
+	connection, err := grpc.NewClient(target, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer connection.Close()
+	callCtx := metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+token, "x-request-id", "system-test-tenant-token")
+	result, err := identityv1.NewIdentityServiceClient(connection).IssueTenantToken(callCtx, &identityv1.IssueTenantTokenRequest{UserId: userID, TenantId: tenantID, MembershipId: membershipID})
+	if err != nil {
+		t.Fatalf("issue tenant token: %v", err)
+	}
+	if result.GetAccessToken() == "" {
+		t.Fatal("issue tenant token returned an empty token")
+	}
+	return result.GetAccessToken()
+}
+
+func waitWorkflowCompleted(t *testing.T, ctx context.Context, baseURL, token, tenantID, instanceID string) {
+	t.Helper()
+	deadline := time.Now().Add(30 * time.Second)
+	for time.Now().Before(deadline) {
+		result := post(t, ctx, baseURL+"/api/v1/workflow/instances/get", token, map[string]any{"tenant_id": tenantID, "id": instanceID})
+		var instance struct {
+			Status string `json:"status"`
+		}
+		decodeBody(t, result, &instance)
+		if instance.Status == "completed" {
+			return
+		}
+		if instance.Status == "failed" || instance.Status == "cancelled" {
+			t.Fatalf("workflow instance reached terminal status %q", instance.Status)
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+	t.Fatal("workflow instance did not complete within 30 seconds")
 }
 
 func serviceURL(name, fallback string) string {

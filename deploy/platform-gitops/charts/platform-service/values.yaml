@@ -24,6 +24,15 @@ eventBus:
   urls: nats://nats.platform-infrastructure.svc.cluster.local:4222
   streamName: PLATFORM_EVENTS
 
+auth:
+  issuer: identity-service
+
+workflow:
+  enabled: false
+  temporalHostPort: temporal.platform-infrastructure.svc.cluster.local:7233
+  temporalNamespace: default
+  temporalTaskQueue: workflow-service
+
 resources:
   requests: {cpu: 100m, memory: 128Mi}
   limits: {cpu: "1", memory: 512Mi}
@@ -46,6 +55,8 @@ networkPolicy:
         - {port: 5432, protocol: TCP}
         - {port: 6379, protocol: TCP}
         - {port: 8080, protocol: TCP}
+        - {port: 9090, protocol: TCP}
+        - {port: 7233, protocol: TCP}
         - {port: 443, protocol: TCP}
 externalSecret:
   enabled: true

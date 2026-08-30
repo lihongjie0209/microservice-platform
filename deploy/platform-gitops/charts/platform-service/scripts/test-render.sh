@@ -79,3 +79,20 @@ fi
 printf '%s\n' "$registry_output" | grep -q 'APP_DATABASE_ENABLED: "false"'
 printf '%s\n' "$registry_output" | grep -q 'APP_REDIS_ENABLED: "true"'
 printf '%s\n' "$registry_output" | grep -q 'APP_EVENT_BUS_ENABLED: "false"'
+
+workflow_output=$(helm template workflow-service "$test_chart" \
+  --namespace platform-development \
+  --set name=workflow-service \
+  --set namespace=platform-development \
+  --set environment=development \
+  --set image.repository=ghcr.io/lihongjie0209/workflow-service \
+  --set image.tag=v0.1.0 \
+  --set database.schema=workflow \
+  --set database.migrationTable=workflow_schema_migrations \
+  --set workflow.enabled=true \
+  --set externalSecret.key=platform/development/workflow-service)
+
+printf '%s\n' "$workflow_output" | grep -q 'APP_TEMPORAL_ENABLED: "true"'
+printf '%s\n' "$workflow_output" | grep -q 'temporal.platform-infrastructure.svc.cluster.local:7233'
+printf '%s\n' "$workflow_output" | grep -q 'dns:///authorization-service.platform-development.svc.cluster.local:9090'
+printf '%s\n' "$workflow_output" | grep -q 'APP_AUTH_AUDIENCE: "workflow-service"'

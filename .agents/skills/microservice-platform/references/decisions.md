@@ -15,6 +15,7 @@
 - Shared JetStream consumers use explicit double acknowledgement, bounded `MaxAckPending`, handler deadlines, delayed exponential redelivery and a finite delivery count. Final failures and malformed envelopes are published as `platform.common.v1.DeadLetterEvent` before the source message is terminated; a dead-letter event is never recursively dead-lettered.
 - `identity-service` is the only platform token issuer. Other services verify EdDSA access tokens from its JWKS endpoint through `platform-go`, validating issuer and service-specific audience; they never expose credential login endpoints.
 - `scheduler-service` dynamically invokes allow-listed unary internal RPCs using Server Reflection plus JSON-to-Protobuf descriptors. It never compiles downstream business client stubs; its own management server still implements the versioned `platform.scheduler.v1` contract normally.
+- `workflow-service` uses Temporal for durable timers, human-task waits, retries, and reverse-order compensation; NATS JetStream remains the platform domain-event bus. A business transaction writes workflow state and a runtime command to its transactional Outbox, and an idempotent JetStream consumer starts, signals, or cancels Temporal so a Temporal outage cannot lose a committed command.
 - `swagger-service` aggregates OpenAPI documents without a database. Local environments use static sources; Kubernetes uses a read-only `client-go` Service SharedInformer selected by `platform.swagger/enabled=true`. The UI forwards the authenticated user's multi-audience JWT to protected upstream document endpoints and caches only validated documents.
 - Application catalog, menu releases, and tenant application grants initially belong to one `application-service`. Tenant facts remain in tenant-service and permission decisions remain in authorization-service; menu-service and entitlement-service are split only when their lifecycle and team boundaries become independently complex.
 - `service-registry-service` owns ephemeral application-level instance leases and metadata discovery. Redis Lua atomically maintains lease ownership, TTL, indexes, revisions, and a resumable Redis Stream; Kubernetes Service/DNS remains the underlying network discovery layer. The platform does not implement its own consensus system.
@@ -40,6 +41,7 @@
 - Domain code remains local even if structs look similar across services.
 - Shared authentication/authorization interceptors, principal/audit context, and Redis distributed locking live in `platform-go`; services provide policy/verifier implementations and domain authorization requirements.
 - Global error codes and transport mappings live in `platform-go`; domain services may define messages/details but must not allocate duplicate numeric codes locally.
+- Reflection-based unary JSON-to-Protobuf invocation shared by scheduler and workflow orchestration lives in `platform-go/dynamicgrpc`. Services provide only an allow-listed, authenticated connection registry; runtime targets and credentials never come from persisted task rows.
 
 ## Testing
 

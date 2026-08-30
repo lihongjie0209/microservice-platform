@@ -292,3 +292,15 @@
 - Symptom: a dead-letter integration scenario consumed an earlier event before the event published specifically for that scenario.
 - Root cause: the JetStream consumer retained the default all-available delivery policy, so a newly created durable correctly started from matching stream history rather than only future messages.
 - Prevention: preserve replay-friendly production defaults; isolate independent tests with distinct subjects or explicitly configure a start policy only when that policy is part of the behavior under test.
+
+## 2026-08-30: Compose validation does not prove image tags are runnable
+
+- Symptom: `docker compose config` passed, but the development stack stopped immediately because a syntactically valid Temporal image tag did not exist.
+- Root cause: Compose schema validation does not resolve image manifests or exercise container health checks.
+- Prevention: pin a published image tag, then require an actual `docker compose up --wait` smoke test for newly added infrastructure; treat registry transport failures separately from an invalid tag.
+
+## 2026-08-31: shell loop failure propagation must be explicit
+
+- Symptom: the workspace `make verify` returned success even though early per-service Swagger commands failed, because later loop iterations succeeded.
+- Root cause: relying on `set -e` inside a POSIX shell loop did not reliably terminate the recipe for a failed command in the loop body.
+- Prevention: append `|| exit $?` to every per-repository loop body and retain a regression command that substitutes one guaranteed-failing child target.

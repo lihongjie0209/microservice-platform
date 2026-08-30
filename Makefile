@@ -11,7 +11,7 @@ PROTOC_GEN_GO_VERSION ?= v1.36.12
 PROTOC_GEN_GO_GRPC_VERSION ?= v1.5.1
 GOLANGCI_LINT_VERSION ?= v2.13.1
 YQ_VERSION ?= v4.50.1
-SERVICES := identity-service tenant-service authorization-service audit-service config-service notification-service file-service scheduler-service swagger-service application-service dictionary-service service-registry-service webhook-service
+SERVICES := identity-service tenant-service authorization-service audit-service config-service notification-service file-service scheduler-service swagger-service application-service dictionary-service service-registry-service webhook-service workflow-service
 SERVICE ?=
 SERVICE_DIR = services/$(SERVICE)
 
@@ -22,7 +22,7 @@ SERVICE_DIR = services/$(SERVICE)
 	service-test-integration service-lint service-fmt service-swagger-check service-migrate-up \
 	service-migrate-down service-dev-up service-dev-down service-dev-logs \
 	build test test-integration lint swagger swagger-check verify \
-	delivery-check compose-check infra-up infra-down infra-logs infra-status dev-up dev-down dev-logs system-test clean clean-tools
+	delivery-check compose-check loop-failure-check infra-up infra-down infra-logs infra-status dev-up dev-down dev-logs system-test clean clean-tools
 
 help:
 	@echo "Workspace commands:"
@@ -80,7 +80,7 @@ $(YQ):
 
 fmt: $(GOLANGCI_LINT)
 	gofmt -w $$(find libraries services -name '*.go' -type f)
-	@set -e; for service in $(SERVICES); do (cd services/$$service && $(GOLANGCI_LINT) fmt ./...); done
+	@set -e; for service in $(SERVICES); do (cd services/$$service && $(GOLANGCI_LINT) fmt ./...) || exit $$?; done
 	@cd libraries/platform-go && $(GOLANGCI_LINT) fmt ./...
 	$(MAKE) -C contracts/platform-protos fmt TOOLS_DIR=$(TOOLS_DIR)
 
@@ -97,25 +97,25 @@ sdk-integration:
 	$(MAKE) -C libraries/platform-go test-integration
 
 services-build:
-	@set -e; for service in $(SERVICES); do $(MAKE) -C services/$$service build; done
+	@set -e; for service in $(SERVICES); do $(MAKE) -C services/$$service build || exit $$?; done
 
 services-test:
-	@set -e; for service in $(SERVICES); do $(MAKE) -C services/$$service test-race; done
+	@set -e; for service in $(SERVICES); do $(MAKE) -C services/$$service test-race || exit $$?; done
 
 services-vet:
-	@set -e; for service in $(SERVICES); do (cd services/$$service && go vet ./...); done
+	@set -e; for service in $(SERVICES); do (cd services/$$service && go vet ./...) || exit $$?; done
 
 services-lint: $(GOLANGCI_LINT)
-	@set -e; for service in $(SERVICES); do PATH="$(TOOLS_DIR):$$PATH" $(MAKE) -C services/$$service lint; done
+	@set -e; for service in $(SERVICES); do PATH="$(TOOLS_DIR):$$PATH" $(MAKE) -C services/$$service lint || exit $$?; done
 
 services-swagger-check:
-	@set -e; for service in $(SERVICES); do $(MAKE) -C services/$$service swagger-check; done
+	@set -e; for service in $(SERVICES); do $(MAKE) -C services/$$service swagger-check || exit $$?; done
 
 services-swagger:
-	@set -e; for service in $(SERVICES); do $(MAKE) -C services/$$service swagger; done
+	@set -e; for service in $(SERVICES); do $(MAKE) -C services/$$service swagger || exit $$?; done
 
 services-integration:
-	@set -e; for service in $(SERVICES); do $(MAKE) -C services/$$service test-integration; done
+	@set -e; for service in $(SERVICES); do $(MAKE) -C services/$$service test-integration || exit $$?; done
 
 service-check:
 	@if [ -z "$(SERVICE)" ]; then echo "SERVICE is required; choose one of: $(SERVICES)" >&2; exit 2; fi
@@ -136,7 +136,12 @@ swagger: services-swagger
 
 swagger-check: services-swagger-check
 
-verify: contracts-check sdk-test services-test services-vet services-swagger-check delivery-check compose-check
+verify: contracts-check sdk-test services-test services-vet services-swagger-check delivery-check compose-check loop-failure-check
+
+loop-failure-check:
+	@if $(MAKE) --no-print-directory services-build SERVICES="missing-service workflow-service" >/dev/null 2>&1; then \
+		echo "per-service loop swallowed an earlier child failure" >&2; exit 1; \
+	fi
 
 delivery-check: $(YQ)
 	helm lint deploy/platform-helm
@@ -176,7 +181,7 @@ system-test: dev-up
 	cd system-tests && go test -tags=system -count=1 -timeout=5m ./...
 
 clean:
-	@set -e; for service in $(SERVICES); do $(MAKE) -C services/$$service clean; done
+	@set -e; for service in $(SERVICES); do $(MAKE) -C services/$$service clean || exit $$?; done
 
 clean-tools:
 	rm -rf $(CURDIR)/.tools
