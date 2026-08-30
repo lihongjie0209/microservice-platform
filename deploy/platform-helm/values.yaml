@@ -16,3 +16,13 @@ externalSecret:
   store: ""
   key: ""
   refreshInterval: 1h
+gateway:
+  enabled: false
+  baseDomain: ""
+  environmentLabel: ""
+  production: false
+  hostname: ""
+  ingressClassName: apisix
+  servicePort: http
+  paths: ["/*"]
+  methods: [POST]

@@ -18,6 +18,7 @@
 - Application catalog, menu releases, and tenant application grants initially belong to one `application-service`. Tenant facts remain in tenant-service and permission decisions remain in authorization-service; menu-service and entitlement-service are split only when their lifecycle and team boundaries become independently complex.
 - `service-registry-service` owns ephemeral application-level instance leases and metadata discovery. Redis Lua atomically maintains lease ownership, TTL, indexes, revisions, and a resumable Redis Stream; Kubernetes Service/DNS remains the underlying network discovery layer. The platform does not implement its own consensus system.
 - `dictionary-service` is the unified dictionary entry point. Static dictionaries remain persisted locally; dynamic providers register each live instance with generic registry metadata. `platform-go/serviceregistry` supplies cached discovery, bounded stale snapshots, reconnect/re-register behavior, weighted selection, and passive ejection. Dictionary-specific capability semantics never enter the registry contract.
+- Apache APISIX is the platform's external API gateway. In Kubernetes, APISIX Ingress Controller discovers Service EndpointSlices from explicitly enabled `ApisixRoute` resources; application-level registry discovery is not placed on the public traffic path. Production hosts use `<service>.<base-domain>`, while non-production uses `<service>.<environment>.<base-domain>` with an independent APISIX release, ingress class and ZeroSSL DNS-01 wildcard certificate per environment.
 
 ## Data
 

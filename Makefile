@@ -5,10 +5,12 @@ BUF := $(TOOLS_DIR)/buf
 PROTOC_GEN_GO := $(TOOLS_DIR)/protoc-gen-go
 PROTOC_GEN_GO_GRPC := $(TOOLS_DIR)/protoc-gen-go-grpc
 GOLANGCI_LINT := $(TOOLS_DIR)/golangci-lint
+YQ := $(TOOLS_DIR)/yq
 BUF_VERSION ?= v1.50.0
 PROTOC_GEN_GO_VERSION ?= v1.36.12
 PROTOC_GEN_GO_GRPC_VERSION ?= v1.5.1
 GOLANGCI_LINT_VERSION ?= v2.13.1
+YQ_VERSION ?= v4.50.1
 SERVICES := identity-service tenant-service authorization-service audit-service config-service notification-service file-service scheduler-service swagger-service application-service dictionary-service service-registry-service
 SERVICE ?=
 SERVICE_DIR = services/$(SERVICE)
@@ -54,7 +56,7 @@ help:
 	@echo "  make infra-logs             Follow local infrastructure logs"
 	@echo "  make infra-down             Stop local infrastructure"
 
-bootstrap: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC) $(GOLANGCI_LINT)
+bootstrap: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC) $(GOLANGCI_LINT) $(YQ)
 
 $(BUF):
 	@mkdir -p $(TOOLS_DIR)
@@ -71,6 +73,10 @@ $(PROTOC_GEN_GO_GRPC):
 $(GOLANGCI_LINT):
 	@mkdir -p $(TOOLS_DIR)
 	GOBIN=$(TOOLS_DIR) go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+
+$(YQ):
+	@mkdir -p $(TOOLS_DIR)
+	GOBIN=$(TOOLS_DIR) go install github.com/mikefarah/yq/v4@$(YQ_VERSION)
 
 fmt: $(GOLANGCI_LINT)
 	gofmt -w $$(find libraries services -name '*.go' -type f)
@@ -132,8 +138,12 @@ swagger-check: services-swagger-check
 
 verify: contracts-check sdk-test services-test services-vet services-swagger-check delivery-check compose-check
 
-delivery-check:
+delivery-check: $(YQ)
 	helm lint deploy/platform-helm
+	sh deploy/platform-helm/scripts/test-gateway.sh
+	helm lint deploy/platform-gitops/charts/platform-gateway-security
+	sh deploy/platform-gitops/charts/platform-gateway-security/scripts/test-render.sh
+	YQ=$(YQ) sh deploy/platform-gitops/scripts/test-apisix-applicationset.sh
 
 compose-check:
 	docker compose -f environments/local/docker-compose.yml config -q

@@ -1,0 +1,7 @@
+apiVersion: v2
+name: gateway-consumer-test
+version: 0.1.0
+dependencies:
+  - name: platform-library
+    version: 0.1.0
+    repository: file://../..

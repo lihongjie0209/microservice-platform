@@ -1,0 +1,22 @@
+enabled: true
+baseDomain: aaa.com
+environmentLabel: dev
+production: false
+ingressClassName: apisix-dev
+
+issuer:
+  email: platform@example.com
+  eabKeyID: replace-through-secret-aware-gitops
+  solvers:
+    - selector:
+        dnsZones: [aaa.com]
+      dns01:
+        cloudflare:
+          apiTokenSecretRef:
+            name: zerossl-dns
+            key: api-token
+
+externalSecrets:
+  enabled: true
+  eabRemoteKey: platform/development/zerossl-eab
+  dnsRemoteKey: platform/development/dns

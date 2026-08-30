@@ -1,0 +1,20 @@
+{{- if .Values.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ .Values.issuer.name }}
+spec:
+  acme:
+    email: {{ required "issuer.email is required when enabled=true" .Values.issuer.email | quote }}
+    server: {{ .Values.issuer.server | quote }}
+    privateKeySecretRef:
+      name: {{ .Values.issuer.accountPrivateKeySecretName }}
+    externalAccountBinding:
+      keyID: {{ required "issuer.eabKeyID is required when enabled=true" .Values.issuer.eabKeyID | quote }}
+      keySecretRef:
+        name: {{ .Values.issuer.eabSecretName }}
+        key: {{ .Values.issuer.eabSecretKey }}
+      keyAlgorithm: HS256
+    solvers:
+      {{- required "issuer.solvers must contain a DNS-01 solver" .Values.issuer.solvers | toYaml | nindent 6 }}
+{{- end }}

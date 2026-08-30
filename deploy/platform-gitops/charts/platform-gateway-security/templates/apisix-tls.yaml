@@ -1,0 +1,15 @@
+{{- if .Values.enabled }}
+{{- $environmentDomain := include "platform-gateway-security.environmentDomain" . }}
+apiVersion: apisix.apache.org/v2
+kind: ApisixTls
+metadata:
+  name: {{ .Values.certificate.name }}
+spec:
+  ingressClassName: {{ .Values.ingressClassName | quote }}
+  hosts:
+    - {{ $environmentDomain | quote }}
+    - {{ printf "*.%s" $environmentDomain | quote }}
+  secret:
+    name: {{ .Values.certificate.secretName }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

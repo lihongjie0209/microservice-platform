@@ -1,0 +1,104 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: platform-apisix
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - environment: development
+            cluster: https://kubernetes.default.svc
+            namespace: ingress-apisix-development
+            ingressClass: apisix-dev
+            replicas: "1"
+            etcdReplicas: "1"
+          - environment: testing
+            cluster: https://kubernetes.default.svc
+            namespace: ingress-apisix-testing
+            ingressClass: apisix-test
+            replicas: "1"
+            etcdReplicas: "1"
+          - environment: staging
+            cluster: https://kubernetes.default.svc
+            namespace: ingress-apisix-staging
+            ingressClass: apisix-staging
+            replicas: "2"
+            etcdReplicas: "3"
+          - environment: production
+            cluster: https://kubernetes.default.svc
+            namespace: ingress-apisix-production
+            ingressClass: apisix-prod
+            replicas: "3"
+            etcdReplicas: "3"
+  template:
+    metadata:
+      name: 'apisix-{{environment}}'
+    spec:
+      project: platform
+      source:
+        repoURL: https://apache.github.io/apisix-helm-chart
+        chart: apisix
+        targetRevision: 2.17.0
+        helm:
+          releaseName: 'apisix-{{environment}}'
+          values: |
+            timezone: Asia/Shanghai
+            replicaCount: {{replicas}}
+            podDisruptionBudget:
+              enabled: true
+              maxUnavailable: 1
+            service:
+              type: LoadBalancer
+              externalTrafficPolicy: Local
+            admin:
+              credentials:
+                secretName: apisix-admin-key
+            etcd:
+              replicaCount: {{etcdReplicas}}
+            ingress-controller:
+              enabled: true
+              config:
+                kubernetes:
+                  ingressClass: {{ingressClass}}
+                  defaultIngressClass: false
+              gatewayProxy:
+                createDefault: true
+                provider:
+                  controlPlane:
+                    auth:
+                      adminKey:
+                        value: ""
+                        valueFrom:
+                          secretKeyRef:
+                            name: apisix-admin-key
+                            key: admin
+              apisix:
+                adminService:
+                  namespace: {{namespace}}
+            extraDeploy:
+              - apiVersion: external-secrets.io/v1
+                kind: ExternalSecret
+                metadata:
+                  name: apisix-admin-key
+                spec:
+                  refreshInterval: 1h
+                  secretStoreRef:
+                    name: platform-vault
+                    kind: ClusterSecretStore
+                  target:
+                    name: apisix-admin-key
+                    creationPolicy: Owner
+                  dataFrom:
+                    - extract:
+                        key: platform/{{environment}}/apisix
+      destination:
+        server: '{{cluster}}'
+        namespace: '{{namespace}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true

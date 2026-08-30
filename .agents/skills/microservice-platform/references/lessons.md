@@ -262,3 +262,9 @@
 - Symptom: a dictionary gateway could discover instances only after it already knew every provider service name.
 - Root cause: the first registry list/watch contract required an exact service name, which made cross-domain capability discovery circular.
 - Prevention: allow an empty service name only when a non-empty metadata selector is supplied, test cross-service selection, and keep domain-specific metadata interpretation in the consuming service.
+
+## 2026-08-30: Helm library defaults do not become consumer root values
+
+- Symptom: a consumer that intentionally omitted an optional gateway block failed while rendering a library named template with a nil-value access.
+- Root cause: a Helm library chart's `values.yaml` is not merged into the parent chart's root `.Values` passed to an included named template.
+- Prevention: named library templates default the whole optional map with `default dict`, default individual fields locally, and test both enabled and completely omitted configurations from a real consumer chart.

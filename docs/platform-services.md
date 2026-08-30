@@ -161,13 +161,17 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 
 ## P1：业务增长后建设
 
-### gateway-service / API Gateway
+### APISIX API Gateway
 
-优先采用 APISIX、Kong、Envoy Gateway 等成熟网关，不从头实现代理。
+平台选用 Apache APISIX，不开发 `gateway-service` 反向代理。Kubernetes 使用 APISIX Ingress Controller 监听显式启用的 `ApisixRoute` 与 Service/EndpointSlice，实现路由和上游实例自动更新。
 
-- 路由、TLS、跨域、外部限流和统一认证入口
-- 灰度、流量切分和外部 API 版本管理
-- 网关只做通用策略，不承载业务编排
+- 生产域名为 `<service>.<base-domain>`，开发、测试和预发布为 `<service>.<environment>.<base-domain>`
+- 每个环境独立 APISIX release、IngressClass、LoadBalancer、Namespace、Admin Key 和 ZeroSSL DNS-01 wildcard 证书
+- 路由、TLS、跨域、外部限流、安全响应头、真实客户端 IP、灰度和外部 API 版本管理
+- 只有声明允许外部暴露的服务生成路由；服务注册不等于公网暴露
+- 网关只做通用策略，不承载业务编排；服务端继续执行 JWT/PSK、授权和租户校验
+
+详细规范见 `docs/api-gateway.md`。
 
 ### workflow-service
 

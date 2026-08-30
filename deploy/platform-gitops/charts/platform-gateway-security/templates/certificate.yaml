@@ -1,0 +1,17 @@
+{{- if .Values.enabled }}
+{{- $environmentDomain := include "platform-gateway-security.environmentDomain" . }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.certificate.name }}
+spec:
+  secretName: {{ .Values.certificate.secretName }}
+  duration: {{ .Values.certificate.duration }}
+  renewBefore: {{ .Values.certificate.renewBefore }}
+  issuerRef:
+    name: {{ .Values.issuer.name }}
+    kind: Issuer
+  dnsNames:
+    - {{ $environmentDomain | quote }}
+    - {{ printf "*.%s" $environmentDomain | quote }}
+{{- end }}

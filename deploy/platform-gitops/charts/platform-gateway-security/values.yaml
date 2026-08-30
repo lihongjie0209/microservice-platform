@@ -1,0 +1,30 @@
+enabled: false
+baseDomain: ""
+environmentLabel: ""
+production: false
+ingressClassName: apisix
+
+issuer:
+  name: zerossl
+  email: ""
+  server: https://acme.zerossl.com/v2/DV90
+  eabKeyID: ""
+  eabSecretName: zerossl-eab
+  eabSecretKey: secret
+  accountPrivateKeySecretName: zerossl-account
+  solvers: []
+
+certificate:
+  name: platform-gateway-tls
+  secretName: platform-gateway-tls
+  duration: 2160h
+  renewBefore: 360h
+
+externalSecrets:
+  enabled: false
+  refreshInterval: 1h
+  storeName: platform-vault
+  storeKind: ClusterSecretStore
+  eabRemoteKey: ""
+  dnsRemoteKey: ""
+  dnsSecretName: zerossl-dns
