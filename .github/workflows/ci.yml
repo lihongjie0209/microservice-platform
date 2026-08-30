@@ -26,7 +26,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for service in identity tenant authorization audit config notification file scheduler swagger; do
+          for service in identity tenant authorization audit config notification file scheduler swagger application; do
             git clone --depth=1 "https://github.com/lihongjie0209/${service}-service.git" "services/${service}-service"
           done
       - name: Validate Compose

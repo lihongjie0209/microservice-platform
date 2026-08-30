@@ -30,7 +30,8 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	auditURL := serviceURL("AUDIT", "http://127.0.0.1:18084")
 	schedulerURL := serviceURL("SCHEDULER", "http://127.0.0.1:18088")
 	swaggerURL := serviceURL("SWAGGER", "http://127.0.0.1:18089")
-	for _, baseURL := range []string{identityURL, tenantURL, authorizationURL, auditURL, schedulerURL, swaggerURL} {
+	applicationURL := serviceURL("APPLICATION", "http://127.0.0.1:18090")
+	for _, baseURL := range []string{identityURL, tenantURL, authorizationURL, auditURL, schedulerURL, swaggerURL, applicationURL} {
 		waitReady(t, ctx, baseURL)
 	}
 	suffix := fmt.Sprint(time.Now().UnixNano())
@@ -60,6 +61,36 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	}
 	decodeBody(t, createdTenant, &tenantResult)
 	tenantID := tenantResult.Tenant.ID
+	applicationResponse := post(t, ctx, applicationURL+"/api/v1/applications/create", tokens.AccessToken, map[string]any{
+		"code": "system_" + suffix, "name": "System Application", "default_route": "/home", "metadata_json": `{}`,
+	})
+	var application struct {
+		ID      string `json:"id"`
+		Version int64  `json:"version"`
+	}
+	decodeBody(t, applicationResponse, &application)
+	post(t, ctx, applicationURL+"/api/v1/applications/menus/upsert", tokens.AccessToken, map[string]any{
+		"menu": map[string]any{"application_id": application.ID, "code": "home", "type": "page", "name": "Home", "route": "/home", "component": "HomePage", "permission_code": "home.read", "visible": true},
+		"expected_version": 0,
+	})
+	post(t, ctx, applicationURL+"/api/v1/applications/menus/publish", tokens.AccessToken, map[string]any{
+		"application_id": application.ID, "application_version": application.Version, "comment": "system test",
+	})
+	post(t, ctx, applicationURL+"/api/v1/applications/tenant-grants/grant", tokens.AccessToken, map[string]any{
+		"tenant_id": tenantID, "application_id": application.ID, "source": "system-test", "entitlements_json": `{}`,
+	})
+	checkResponse := post(t, ctx, applicationURL+"/api/v1/applications/tenant-grants/batch-check", tokens.AccessToken, map[string]any{
+		"tenant_id": tenantID, "application_ids": []string{application.ID},
+	})
+	var checks []struct {
+		ApplicationID string `json:"application_id"`
+		Granted       bool   `json:"granted"`
+	}
+	decodeBody(t, checkResponse, &checks)
+	if len(checks) != 1 || !checks[0].Granted {
+		t.Fatalf("tenant application grant was not active: %+v", checks)
+	}
+	post(t, ctx, applicationURL+"/api/v1/applications/navigation/get", tokens.AccessToken, map[string]any{"application_id": application.ID})
 	permissionResponse := post(t, ctx, authorizationURL+"/api/v1/authorization/permissions/create", tokens.AccessToken, map[string]any{"tenant_id": tenantID, "code": "orders.read", "name": "Read orders", "resource_type": "order", "action": "read"})
 	var permission struct {
 		ID string `json:"id"`
@@ -116,6 +147,7 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 		t.Fatalf("scheduler dynamic gRPC invocation failed: %+v", execution)
 	}
 	getContains(t, ctx, swaggerURL+"/swagger/services", "scheduler-service")
+	getContains(t, ctx, swaggerURL+"/swagger/services", "application-service")
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/identity-service")
 }
 

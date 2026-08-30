@@ -20,6 +20,8 @@ Use this workflow before changing any repository under this workspace.
 - `identity-service` owns users, credentials, sessions, tokens, signing keys, external identities, and service accounts.
 - `tenant-service` owns tenants, memberships, invitations, organization units, groups, quotas, and tenant lifecycle.
 - `authorization-service` owns permissions, roles, bindings, policies, decisions, and data scopes.
+- `application-service` owns the application catalog, menu drafts/releases, and tenant-application grants.
+- `dictionary-service` owns static dictionary definitions/releases and the registry/gateway for dynamic dictionary providers. Dynamic data remains owned and queried by the providing business service.
 - An online service never reads another service's tables. Use versioned gRPC for synchronous facts and NATS JetStream events for asynchronous reactions.
 - OLAP/reporting uses CDC, domain events, or scheduled exports to build read-only analytical models. A direct read-only connection to an owning service's OLTP data requires an explicit architecture review, separate credentials, query limits, and must never participate in an online transaction.
 - Frontend REST DTOs belong to each service. They may aggregate internal gRPC responses, but must not expose database structs or Proto messages directly.
@@ -47,6 +49,7 @@ Use this workflow before changing any repository under this workspace.
 - Map domain failures to precise gRPC status codes; never leak raw internal errors.
 - Frontend endpoints use POST with JSON and the platform response envelope, except standards-required discovery endpoints such as JWKS and health probes.
 - Include pagination contracts for lists and request/trace/actor/tenant context where relevant.
+- Dictionary providers implement the shared query/tree/code-resolution contract. Search exposes allow-listed filters and sort keys, never SQL fragments. Tree APIs enforce depth/node limits and define full, lazy-children, and search-with-ancestors modes.
 - Run Buf lint, breaking checks, and generation. Generated code must be reproducible and have no diff after regeneration.
 
 ## Event rules

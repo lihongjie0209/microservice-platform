@@ -238,3 +238,9 @@
 - Symptom: an annotated Service appeared in the Swagger catalog but its production document endpoint was disabled or blocked by cross-namespace NetworkPolicy.
 - Root cause: Service list/watch proves discoverability only; it does not grant workload network access or application authentication.
 - Prevention: enable the protected internal document endpoint, forward a valid multi-audience caller token, allow only swagger-service ingress on the document port, and test discovery plus document retrieval together.
+
+## 2026-08-30: PostgreSQL text preference is not a portable MySQL indexing rule
+
+- Symptom: an application-service migration passed PostgreSQL but MySQL rejected `TEXT DEFAULT ''`; indexed and unique `TEXT` columns would also require prefix lengths.
+- Root cause: PostgreSQL-oriented type guidance was copied verbatim into a MySQL physical schema.
+- Prevention: keep PostgreSQL/Kingbase domain strings as `TEXT`; in MySQL use bounded `VARCHAR` for identifiers, foreign keys, unique keys, and indexed values, leave payload/display text as `TEXT` without defaults, and run both database migration suites before publishing.

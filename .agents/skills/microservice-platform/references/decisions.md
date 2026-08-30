@@ -16,6 +16,7 @@
 - `scheduler-service` dynamically invokes allow-listed unary internal RPCs using Server Reflection plus JSON-to-Protobuf descriptors. It never compiles downstream business client stubs; its own management server still implements the versioned `platform.scheduler.v1` contract normally.
 - `swagger-service` aggregates OpenAPI documents without a database. Local environments use static sources; Kubernetes uses a read-only `client-go` Service SharedInformer selected by `platform.swagger/enabled=true`. The UI forwards the authenticated user's multi-audience JWT to protected upstream document endpoints and caches only validated documents.
 - Application catalog, menu releases, and tenant application grants initially belong to one `application-service`. Tenant facts remain in tenant-service and permission decisions remain in authorization-service; menu-service and entitlement-service are split only when their lifecycle and team boundaries become independently complex.
+- `dictionary-service` is the unified dictionary entry point. It persists versioned static dictionaries, while dynamic dictionaries stay in their owning services behind `DictionaryProviderService`. Providers register capabilities, allow-listed filters/sorts, target, timeout, cache TTL, and a renewable lease; the gateway applies authentication, timeout, circuit breaking, caching, and normalized pagination/tree semantics without cross-schema reads.
 
 ## Data
 

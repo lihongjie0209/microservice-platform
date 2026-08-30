@@ -9,7 +9,7 @@ BUF_VERSION ?= v1.50.0
 PROTOC_GEN_GO_VERSION ?= v1.36.12
 PROTOC_GEN_GO_GRPC_VERSION ?= v1.5.1
 GOLANGCI_LINT_VERSION ?= v2.13.1
-SERVICES := identity-service tenant-service authorization-service audit-service config-service notification-service file-service scheduler-service swagger-service
+SERVICES := identity-service tenant-service authorization-service audit-service config-service notification-service file-service scheduler-service swagger-service application-service
 SERVICE ?=
 SERVICE_DIR = services/$(SERVICE)
 
@@ -116,7 +116,7 @@ service-check:
 	@case " $(SERVICES) " in *" $(SERVICE) "*) ;; *) echo "unknown SERVICE=$(SERVICE); choose one of: $(SERVICES)" >&2; exit 2;; esac
 
 service-run service-build service-docker-build service-test service-test-race service-test-integration service-lint service-fmt service-swagger-check service-migrate-up service-migrate-down service-dev-up service-dev-down service-dev-logs: service-check
-	@target=$@; $(MAKE) -C $(SERVICE_DIR) $${target#service-}
+	@target=$@; PATH="$(TOOLS_DIR):$$PATH" $(MAKE) -C $(SERVICE_DIR) $${target#service-}
 
 build: services-build
 
