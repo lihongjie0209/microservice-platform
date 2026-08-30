@@ -59,6 +59,7 @@ spec:
                 - {service: webhook-service, schema: webhook, database: "true", redis: "true", eventBus: "true", exposure: public}
                 - {service: workflow-service, schema: workflow, database: "true", redis: "true", eventBus: "true", exposure: public}
                 - {service: search-service, schema: search, database: "true", redis: "true", eventBus: "true", exposure: public}
+                - {service: metering-service, schema: metering, database: "true", redis: "true", eventBus: "true", exposure: public}
   template:
     metadata:
       name: '{{ .service }}-{{ .environment }}'

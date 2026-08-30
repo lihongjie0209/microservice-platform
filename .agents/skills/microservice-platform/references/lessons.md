@@ -346,3 +346,9 @@
 - Symptom: local `make system-test` passed, but GitHub CI failed before building because `services/search-service` did not exist.
 - Root cause: the coordination repository excludes independent service checkouts and the CI clone allow-list was not extended with the new Compose service.
 - Prevention: add every new service to the CI checkout list in the same platform integration commit and keep Compose validation after checkout.
+
+## 2026-08-31: generated service examples must not survive domain conversion
+
+- Symptom: a newly generated domain service compiled while still documenting and testing local Hello/User Proto, principal, event-bus, and configuration examples alongside the real central contract and shared SDK.
+- Root cause: scaffold generation establishes a runnable baseline, but successful compilation does not prove template-only artifacts were replaced or that the service follows platform ownership boundaries.
+- Prevention: before the first service commit, audit imports, routes, generated code, docs, CI targets, configuration sections, and tests for template domain names; remove local Proto and cross-cutting duplicates, depend on the pinned central contract/shared SDK, then run vet, lint, Swagger drift, and service integration tests.

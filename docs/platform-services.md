@@ -188,6 +188,14 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 - 页面 POST+JSON DTO 与中央 gRPC/事件 Proto 分离；批量 gRPC 仅供受保护的重建和回填
 - 搜索结果最终一致，不成为业务事实来源
 
+### metering-service
+
+- 已实现计量器定义、批量用量采集、追加式调整和按小时/日/月聚合查询
+- HTTP 页面接口使用 POST+JSON，内部调用使用中央 `platform.metering.v1` gRPC 契约
+- 用量写入以 event ID 幂等，事务内同时写事实与 Outbox，并发布 MeterChanged/UsageRecorded 事件
+- 查询在 PostgreSQL/MySQL 内完成 JSON 维度过滤、聚合和结果分页；PostgreSQL/Kingbase 明细表按时间分区
+- JWT Principal 强制租户范围，服务账号用于内部采集；Billing 通过 API/事件读取，不跨 schema 查询
+
 ### webhook-service
 
 - 外部订阅、签名、投递、重试和回放
@@ -197,7 +205,6 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 
 ## P2：规模化阶段
 
-- metering-service：用量计量和配额消耗。
 - billing-service：套餐、账单、支付和对账。
 - metadata-service：统一字典和可扩展元数据。
 - rule-service：业务规则版本、发布和执行。
@@ -241,6 +248,7 @@ dictionary-service
 service-registry-service
 webhook-service
 search-service
+metering-service
 ```
 
 `microgen` 当前仍在模板仓库中，稳定后再拆成独立仓库发布二进制。

@@ -408,6 +408,22 @@ services:
       APP_OPENSEARCH_ADDRESSES: http://opensearch:9200
       APP_OUTBOUND_GRPC_AUTHORIZATION_TARGET: authorization-service:9090
 
+  metering-service:
+    <<: *platform-service
+    build: {context: ../../services/metering-service, args: {GOPROXY: "${GOPROXY:-https://goproxy.cn,direct}"}}
+    ports: ["18096:8080", "19096:9090"]
+    depends_on:
+      <<: *platform-dependencies
+      identity-service: {condition: service_healthy}
+    environment:
+      <<: *platform-env
+      APP_DATABASE_SCHEMA: metering
+      APP_DATABASE_DSN: postgres://metering_service:metering-dev@postgres:5432/platform?sslmode=disable&search_path=metering
+      APP_MIGRATION_DATABASE_URL: postgres://metering_service:metering-dev@postgres:5432/platform?sslmode=disable&search_path=metering
+      APP_MIGRATION_TABLE: metering_schema_migrations
+      APP_AUTH_JWKS_URL: http://identity-service:8080/.well-known/jwks.json
+      APP_AUTH_AUDIENCE: metering-service
+
   swagger-service:
     profiles: [platform]
     restart: unless-stopped
@@ -428,6 +444,7 @@ services:
       webhook-service: {condition: service_healthy}
       workflow-service: {condition: service_healthy}
       search-service: {condition: service_healthy}
+      metering-service: {condition: service_healthy}
     environment:
       APP_ENV: compose
       APP_HTTP_ADDRESS: 0.0.0.0:8080

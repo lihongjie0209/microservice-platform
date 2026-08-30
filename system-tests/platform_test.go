@@ -39,7 +39,8 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	dictionaryURL := serviceURL("DICTIONARY", "http://127.0.0.1:18091")
 	workflowURL := serviceURL("WORKFLOW", "http://127.0.0.1:18094")
 	searchURL := serviceURL("SEARCH", "http://127.0.0.1:18095")
-	for _, baseURL := range []string{identityURL, tenantURL, authorizationURL, auditURL, schedulerURL, swaggerURL, applicationURL, dictionaryURL, workflowURL, searchURL} {
+	meteringURL := serviceURL("METERING", "http://127.0.0.1:18096")
+	for _, baseURL := range []string{identityURL, tenantURL, authorizationURL, auditURL, schedulerURL, swaggerURL, applicationURL, dictionaryURL, workflowURL, searchURL, meteringURL} {
 		waitReady(t, ctx, baseURL)
 	}
 	suffix := fmt.Sprint(time.Now().UnixNano())
@@ -148,6 +149,35 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	}
 	decodeBody(t, instanceResponse, &instance)
 	waitWorkflowCompleted(t, ctx, workflowURL, tokens.AccessToken, tenantID, instance.ID)
+	meterCode := "system." + suffix
+	post(t, ctx, meteringURL+"/api/v1/meters/create", tokens.AccessToken, map[string]any{
+		"code": meterCode, "name": "System usage", "unit": "request", "aggregation": "sum", "dimension_keys": []string{"endpoint"},
+	})
+	occurredAt := time.Now().In(time.FixedZone("UTC+8", 8*60*60)).Truncate(time.Second)
+	usageResponse := post(t, ctx, meteringURL+"/api/v1/usage/record", tokens.AccessToken, map[string]any{"events": []map[string]any{
+		{"event_id": "system-usage-" + suffix, "tenant_id": tenantID, "meter_code": meterCode, "quantity": 7, "dimensions": map[string]string{"endpoint": "/system"}, "occurred_at": occurredAt.Format(time.RFC3339), "source_service": "system-test"},
+	}})
+	var usageResults []struct {
+		Duplicate bool `json:"duplicate"`
+	}
+	decodeBody(t, usageResponse, &usageResults)
+	if len(usageResults) != 1 || usageResults[0].Duplicate {
+		t.Fatalf("unexpected usage ingestion result: %+v", usageResults)
+	}
+	usageQuery := post(t, ctx, meteringURL+"/api/v1/usage/query", tokens.AccessToken, map[string]any{
+		"tenant_id": tenantID, "meter_code": meterCode, "start_at": occurredAt.Add(-time.Hour).Format(time.RFC3339), "end_at": occurredAt.Add(time.Hour).Format(time.RFC3339),
+		"dimensions": map[string]string{"endpoint": "/system"}, "granularity": "hour", "page": 1, "page_size": 20,
+	})
+	var usagePage struct {
+		Items []struct {
+			Quantity int64 `json:"quantity"`
+		} `json:"items"`
+		TotalQuantity int64 `json:"total_quantity"`
+	}
+	decodeBody(t, usageQuery, &usagePage)
+	if len(usagePage.Items) != 1 || usagePage.Items[0].Quantity != 7 || usagePage.TotalQuantity != 7 {
+		t.Fatalf("unexpected metering aggregate: %+v", usagePage)
+	}
 	permissionResponse := post(t, ctx, authorizationURL+"/api/v1/authorization/permissions/create", tokens.AccessToken, map[string]any{"tenant_id": tenantID, "code": "orders.read", "name": "Read orders", "resource_type": "order", "action": "read"})
 	var permission struct {
 		ID string `json:"id"`
@@ -208,10 +238,12 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	getContains(t, ctx, swaggerURL+"/swagger/services", "dictionary-service")
 	getContains(t, ctx, swaggerURL+"/swagger/services", "workflow-service")
 	getContains(t, ctx, swaggerURL+"/swagger/services", "search-service")
+	getContains(t, ctx, swaggerURL+"/swagger/services", "metering-service")
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/identity-service")
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/dictionary-service")
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/workflow-service")
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/search-service")
+	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/metering-service")
 }
 
 func issueTenantToken(t *testing.T, ctx context.Context, target, token, userID, tenantID, membershipID string) string {

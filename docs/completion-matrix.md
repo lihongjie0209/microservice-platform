@@ -20,6 +20,7 @@
 | service-registry | 服务与实例查询管理页面接口 | 注册、续租、draining、注销、发现和 revision Watch | Redis Stream 作为可恢复的实例变更流 | Redis Lua 原子租约、令牌摘要、TTL、索引；无业务数据库 |
 | workflow | 定义、发布、实例和我的任务页面接口 | 完整工作流管理契约；服务任务动态调用内部 gRPC | 状态/任务事件 + Outbox；命令 durable consumer 驱动 Temporal | 发布快照、实例/任务乐观锁、审计主体、Temporal 幂等与补偿 |
 | search | 查询、建议、单文档页面接口，支持分页/过滤/排序/高亮/聚合 | 中央 Search API；受保护批量重建接口 | durable 消费搜索文档事件 + 事务 Inbox | OpenSearch 外部版本、服务端可见性令牌、JWT 租户隔离、授权角色解析 |
+| metering | 计量器管理、批量用量写入、调整和聚合查询 | 中央 Metering API，供内部采集与 Billing 使用 | 计量器变更、用量记录事件 + 事务 Outbox | 事件 ID 幂等、不可变事实、租户隔离、数据库端聚合分页、PG/Kingbase 时间分区 |
 
 ## 共享资产与交付
 
@@ -35,7 +36,7 @@
 ```text
 make verify            PASS  # race、vet、Proto、Swagger、Helm、Compose
 make test-integration  PASS  # SDK + 各服务的隔离 Testcontainers 测试
-system-tests           PASS  # PSK -> JWT -> tenant -> authorization -> NATS -> audit -> scheduler -> registry -> dynamic dictionary -> workflow -> search -> Swagger
+system-tests           PASS  # PSK -> JWT -> tenant -> authorization -> NATS -> audit -> scheduler -> registry -> dictionary -> workflow -> search -> metering -> Swagger
 ```
 
 每个服务的单元/集成测试均可独立运行，不要求其他服务在线。多服务旅程只存在于平台级 `system-tests`。CI 会重新克隆各独立服务仓库后运行 Compose 和系统测试，防止本地 workspace 替换掩盖发布问题。
@@ -51,4 +52,4 @@ system-tests           PASS  # PSK -> JWT -> tenant -> authorization -> NATS -> 
 
 ## 尚未建设的增长能力
 
-计量、计费、规则和数据导出仍按 `platform-services.md` 的 P2 触发条件建设。它们需要真实业务边界和容量目标，不应为了“看起来完整”提前部署空服务。
+计费、规则和数据导出仍按 `platform-services.md` 的 P2 触发条件建设。它们需要真实业务边界和容量目标，不应为了“看起来完整”提前部署空服务。
