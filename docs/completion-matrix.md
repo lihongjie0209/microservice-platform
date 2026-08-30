@@ -15,11 +15,14 @@
 | file | 预签名上传/下载、分片上传、扫描、删除 | 同等文件和 multipart 契约 | 文件生命周期事件 + outbox | S3/MinIO、校验、重试删除、过期上传清理 |
 | scheduler | 任务 CRUD、手动触发、执行记录 | 同等任务管理与触发契约 | 复用平台事件总线基础设施 | 动态 Reflection 调用、集群锁、乐观锁、执行幂等与审计 |
 | swagger | 聚合服务目录、OpenAPI 文档和统一 Swagger UI | 不暴露业务 gRPC | 无状态，不接入事件总线 | 静态配置 + Kubernetes Service Informer 自动发现、TTL 缓存和 stale fallback |
+| application | 应用目录、菜单草稿/发布、租户应用授权 | 应用、菜单版本和授权管理契约 | 应用、菜单发布、租户授权事件 + outbox | 菜单不可变发布快照、授权乐观锁、权限码引用 |
+| dictionary | 静态字典、版本发布、分页/搜索/树/编码解析和 Provider 查询 | 字典管理与通用动态 Provider 数据面 | 字典发布和 Provider 变更事件 + outbox | 静态版本快照；动态数据由业务服务拥有并通过注册中心发现 |
+| service-registry | 服务与实例查询管理页面接口 | 注册、续租、draining、注销、发现和 revision Watch | Redis Stream 作为可恢复的实例变更流 | Redis Lua 原子租约、令牌摘要、TTL、索引；无业务数据库 |
 
 ## 共享资产与交付
 
 - `platform-protos` 是 gRPC 与事件 Proto 的唯一来源，执行 Buf lint、生成一致性和 breaking 检查。
-- `platform-go` 维护主体/审计上下文、JWT/JWKS/PSK 拦截器、统一授权、全局错误码、Redsync 分布式锁、JetStream、事务 outbox、动态配置客户端和敏感字段脱敏。
+- `platform-go` 维护主体/审计上下文、JWT/JWKS/PSK 拦截器、统一授权、全局错误码、Redsync 分布式锁、JetStream、事务 outbox、动态配置客户端、注册/发现缓存与故障恢复 SDK 和敏感字段脱敏。
 - 所有服务使用独立 PostgreSQL Schema、角色和迁移表；Compose bootstrap 对新旧数据卷均幂等协调账号、密码、所有权和 search_path。
 - 服务镜像使用非 root 用户，预创建可写日志目录，并通过 ldflags 注入版本、Git commit 和构建时间。
 - Helm Library Chart 与 GitOps 示例覆盖 Service、Deployment、迁移 initContainer/Job 约束、探针、HPA、PDB、NetworkPolicy 和 ExternalSecret。
@@ -29,8 +32,8 @@
 
 ```text
 make verify            PASS  # race、vet、Proto、Swagger、Helm、Compose
-make test-integration  PASS  # SDK + 九个服务的隔离测试
-system-tests           PASS  # PSK -> JWT -> tenant -> authorization -> NATS -> audit -> dynamic scheduler -> Swagger aggregation
+make test-integration  PASS  # SDK + 各服务的隔离 Testcontainers 测试
+system-tests           PASS  # PSK -> JWT -> tenant -> authorization -> NATS -> audit -> scheduler -> registry -> dynamic dictionary -> Swagger
 ```
 
 每个服务的单元/集成测试均可独立运行，不要求其他服务在线。多服务旅程只存在于平台级 `system-tests`。CI 会重新克隆各独立服务仓库后运行 Compose 和系统测试，防止本地 workspace 替换掩盖发布问题。
