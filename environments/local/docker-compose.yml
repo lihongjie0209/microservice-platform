@@ -114,6 +114,21 @@ services:
       timeout: 3s
       retries: 30
 
+  opensearch:
+    image: opensearchproject/opensearch:3.6.0
+    environment:
+      discovery.type: single-node
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+      DISABLE_SECURITY_PLUGIN: "true"
+      OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
+    ports: ["9200:9200"]
+    volumes: [opensearch-data:/usr/share/opensearch/data]
+    healthcheck:
+      test: [CMD-SHELL, curl -fsS http://127.0.0.1:9200/_cluster/health]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+
   temporal:
     image: temporalio/auto-setup:1.29.7
     environment:
@@ -372,6 +387,27 @@ services:
       APP_TEMPORAL_ENABLED: "true"
       APP_TEMPORAL_HOST_PORT: temporal:7233
 
+  search-service:
+    <<: *platform-service
+    build: {context: ../../services/search-service, args: {GOPROXY: "${GOPROXY:-https://goproxy.cn,direct}"}}
+    ports: ["18095:8080", "19095:9090"]
+    depends_on:
+      <<: *platform-dependencies
+      identity-service: {condition: service_healthy}
+      authorization-service: {condition: service_healthy}
+      opensearch: {condition: service_healthy}
+    environment:
+      <<: *platform-env
+      APP_DATABASE_SCHEMA: search
+      APP_DATABASE_DSN: postgres://search_service:search-dev@postgres:5432/platform?sslmode=disable&search_path=search
+      APP_MIGRATION_DATABASE_URL: postgres://search_service:search-dev@postgres:5432/platform?sslmode=disable&search_path=search
+      APP_MIGRATION_TABLE: search_schema_migrations
+      APP_AUTH_JWKS_URL: http://identity-service:8080/.well-known/jwks.json
+      APP_AUTH_AUDIENCE: search-service
+      APP_OPENSEARCH_ENABLED: "true"
+      APP_OPENSEARCH_ADDRESSES: http://opensearch:9200
+      APP_OUTBOUND_GRPC_AUTHORIZATION_TARGET: authorization-service:9090
+
   swagger-service:
     profiles: [platform]
     restart: unless-stopped
@@ -391,6 +427,7 @@ services:
       service-registry-service: {condition: service_healthy}
       webhook-service: {condition: service_healthy}
       workflow-service: {condition: service_healthy}
+      search-service: {condition: service_healthy}
     environment:
       APP_ENV: compose
       APP_HTTP_ADDRESS: 0.0.0.0:8080
@@ -402,4 +439,5 @@ volumes:
   mysql-data:
   redis-data:
   nats-data:
+  opensearch-data:
   minio-data:

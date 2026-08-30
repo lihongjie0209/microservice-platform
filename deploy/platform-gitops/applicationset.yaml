@@ -58,6 +58,7 @@ spec:
                 - {service: service-registry-service, schema: service_registry, database: "false", redis: "true", eventBus: "false", exposure: public}
                 - {service: webhook-service, schema: webhook, database: "true", redis: "true", eventBus: "true", exposure: public}
                 - {service: workflow-service, schema: workflow, database: "true", redis: "true", eventBus: "true", exposure: public}
+                - {service: search-service, schema: search, database: "true", redis: "true", eventBus: "true", exposure: public}
   template:
     metadata:
       name: '{{ .service }}-{{ .environment }}'
@@ -85,6 +86,8 @@ spec:
             - {name: eventBus.enabled, value: '{{ .eventBus }}'}
             - name: workflow.enabled
               value: '{{ if eq .service "workflow-service" }}true{{ else }}false{{ end }}'
+            - name: search.enabled
+              value: '{{ if eq .service "search-service" }}true{{ else }}false{{ end }}'
             - {name: externalSecret.key, value: 'platform/{{ .environment }}/{{ .service }}'}
             - {name: networkPolicy.gatewayNamespace, value: '{{ .gatewayNamespace }}'}
             - {name: gateway.baseDomain, value: '{{ .baseDomain }}'}

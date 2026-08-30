@@ -33,6 +33,10 @@ workflow:
   temporalNamespace: default
   temporalTaskQueue: workflow-service
 
+search:
+  enabled: false
+  openSearchAddresses: http://opensearch.platform-infrastructure.svc.cluster.local:9200
+
 resources:
   requests: {cpu: 100m, memory: 128Mi}
   limits: {cpu: "1", memory: 512Mi}
@@ -57,6 +61,7 @@ networkPolicy:
         - {port: 8080, protocol: TCP}
         - {port: 9090, protocol: TCP}
         - {port: 7233, protocol: TCP}
+        - {port: 9200, protocol: TCP}
         - {port: 443, protocol: TCP}
 externalSecret:
   enabled: true

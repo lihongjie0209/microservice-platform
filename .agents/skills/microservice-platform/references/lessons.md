@@ -304,3 +304,39 @@
 - Symptom: the workspace `make verify` returned success even though early per-service Swagger commands failed, because later loop iterations succeeded.
 - Root cause: relying on `set -e` inside a POSIX shell loop did not reliably terminate the recipe for a failed command in the loop body.
 - Prevention: append `|| exit $?` to every per-repository loop body and retain a regression command that substitutes one guaranteed-failing child target.
+
+## 2026-08-31: verification commands must not silently format authoritative contracts
+
+- Symptom: `make verify` changed a committed Proto file while reporting a successful contract check.
+- Root cause: the check target depended on the mutating `buf format -w` target and verified generated Go only.
+- Prevention: generation may format explicitly, but checks use `buf format --diff --exit-code`; CI validates both Proto formatting and generated-code drift.
+
+## 2026-08-31: replay-safe search projections must treat stale external versions as success
+
+- Symptom: a delayed index event received OpenSearch `409 Conflict`, was retried until MaxDeliver, and could be dead-lettered even though a newer projection was already correct.
+- Root cause: external version conflict was handled as infrastructure unavailability instead of the expected result of monotonic projection ordering.
+- Prevention: use `source_version` with `external_gte`, acknowledge stale/equal conflicts as idempotent success, and retain a unit regression for the 409 path.
+
+## 2026-08-31: index bootstrap is a concurrent replica operation
+
+- Symptom: two fresh replicas both observed a missing index; one created it and the other failed startup on the create response.
+- Root cause: index existence check followed by creation is inherently racy.
+- Prevention: after a create conflict/bad-request, re-check index existence and succeed only when the expected index now exists; never assume startup hooks are singletons.
+
+## 2026-08-31: shared JetStream provisioning requires identical subjects
+
+- Symptom: transactional Outbox publishers repeatedly received `nats: no response from stream` after another service started.
+- Root cause: every service idempotently reconciled the shared `PLATFORM_EVENTS` stream, but a generated default still used `service.>` and replaced the authoritative `platform.>` subject set.
+- Prevention: every participant in the shared stream configures the identical `platform.>` subject; keep that value in the generator and verify a multi-service restart against a persistent JetStream volume.
+
+## 2026-08-31: inbound authentication metadata is not outbound metadata
+
+- Symptom: search requests passed local JWT authentication but authorization-service rejected role lookup with `missing bearer token`.
+- Root cause: gRPC does not automatically copy an incoming credential to an outbound RPC, and HTTP request headers are not gRPC metadata.
+- Prevention: explicitly forward the already verified caller credential only at the authorization boundary; never make generic outbound clients forward credentials implicitly, and retain HTTP and gRPC context regressions.
+
+## 2026-08-31: outbound pagination must honor the provider contract
+
+- Symptom: authenticated search queries still failed because authorization-service rejected `page_size=200` while its maximum is 100.
+- Root cause: the consumer chose a private batch size instead of the provider's published pagination invariant.
+- Prevention: bind outbound pagination to the shared/provider contract limit and assert the exact request page size in the client unit test.

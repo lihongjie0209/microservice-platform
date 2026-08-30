@@ -16,6 +16,7 @@
 | dictionary-service | `dictionary_service` | `dictionary` |
 | webhook-service | `webhook_service` | `webhook` |
 | workflow-service | `workflow_service` | `workflow` |
+| search-service | `search_service` | `search` |
 
 本地密码只用于开发环境。测试和生产通过 Secret 管理系统注入独立凭证。
 

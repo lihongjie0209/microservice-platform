@@ -182,8 +182,10 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 
 ### search-service
 
-- 聚合跨域搜索索引
-- 通过事件更新 Elasticsearch/OpenSearch 索引
+- 已实现 OpenSearch 跨域投影、查询、建议、过滤、排序、高亮和聚合
+- 业务服务通过事务 Outbox 发布 SearchDocument 事件；Search 使用 durable JetStream + Inbox 消费，并以 source_version 保证单调幂等
+- JWT tenant、membership 与 authorization-service 角色绑定生成服务端可见性令牌；前端不能提交可信角色
+- 页面 POST+JSON DTO 与中央 gRPC/事件 Proto 分离；批量 gRPC 仅供受保护的重建和回填
 - 搜索结果最终一致，不成为业务事实来源
 
 ### webhook-service
@@ -238,6 +240,7 @@ application-service
 dictionary-service
 service-registry-service
 webhook-service
+search-service
 ```
 
 `microgen` 当前仍在模板仓库中，稳定后再拆成独立仓库发布二进制。

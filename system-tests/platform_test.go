@@ -38,7 +38,8 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	applicationURL := serviceURL("APPLICATION", "http://127.0.0.1:18090")
 	dictionaryURL := serviceURL("DICTIONARY", "http://127.0.0.1:18091")
 	workflowURL := serviceURL("WORKFLOW", "http://127.0.0.1:18094")
-	for _, baseURL := range []string{identityURL, tenantURL, authorizationURL, auditURL, schedulerURL, swaggerURL, applicationURL, dictionaryURL, workflowURL} {
+	searchURL := serviceURL("SEARCH", "http://127.0.0.1:18095")
+	for _, baseURL := range []string{identityURL, tenantURL, authorizationURL, auditURL, schedulerURL, swaggerURL, applicationURL, dictionaryURL, workflowURL, searchURL} {
 		waitReady(t, ctx, baseURL)
 	}
 	suffix := fmt.Sprint(time.Now().UnixNano())
@@ -114,6 +115,7 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	post(t, ctx, applicationURL+"/api/v1/applications/tenant-grants/grant", tokens.AccessToken, map[string]any{
 		"tenant_id": tenantID, "application_id": application.ID, "source": "system-test", "entitlements_json": `{}`,
 	})
+	waitSearchDocument(t, ctx, searchURL, tokens.AccessToken, tenantID, application.ID, "System Application")
 	checkResponse := post(t, ctx, applicationURL+"/api/v1/applications/tenant-grants/batch-check", tokens.AccessToken, map[string]any{
 		"tenant_id": tenantID, "application_ids": []string{application.ID},
 	})
@@ -205,9 +207,11 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	getContains(t, ctx, swaggerURL+"/swagger/services", "application-service")
 	getContains(t, ctx, swaggerURL+"/swagger/services", "dictionary-service")
 	getContains(t, ctx, swaggerURL+"/swagger/services", "workflow-service")
+	getContains(t, ctx, swaggerURL+"/swagger/services", "search-service")
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/identity-service")
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/dictionary-service")
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/workflow-service")
+	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/search-service")
 }
 
 func issueTenantToken(t *testing.T, ctx context.Context, target, token, userID, tenantID, membershipID string) string {
@@ -246,6 +250,48 @@ func waitWorkflowCompleted(t *testing.T, ctx context.Context, baseURL, token, te
 		time.Sleep(250 * time.Millisecond)
 	}
 	t.Fatal("workflow instance did not complete within 30 seconds")
+}
+
+func waitSearchDocument(t *testing.T, ctx context.Context, baseURL, token, tenantID, applicationID, query string) {
+	t.Helper()
+	deadline := time.Now().Add(30 * time.Second)
+	for time.Now().Before(deadline) {
+		encoded, err := json.Marshal(map[string]any{"tenant_id": tenantID, "query": query, "document_types": []string{"application"}, "page": 1, "page_size": 20})
+		if err != nil {
+			t.Fatal(err)
+		}
+		request, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/api/v1/search/query", bytes.NewReader(encoded))
+		if err != nil {
+			t.Fatal(err)
+		}
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("Authorization", "Bearer "+token)
+		request.Header.Set("X-Request-ID", "system-search-"+fmt.Sprint(time.Now().UnixNano()))
+		result, err := http.DefaultClient.Do(request)
+		if err == nil {
+			var envelope response
+			decodeErr := json.NewDecoder(result.Body).Decode(&envelope)
+			_ = result.Body.Close()
+			if result.StatusCode == http.StatusOK && decodeErr == nil && envelope.Code == 0 {
+				var page struct {
+					Items []struct {
+						Document struct {
+							ApplicationID string `json:"application_id"`
+						} `json:"document"`
+					} `json:"items"`
+				}
+				if json.Unmarshal(envelope.Body, &page) == nil {
+					for _, item := range page.Items {
+						if item.Document.ApplicationID == applicationID {
+							return
+						}
+					}
+				}
+			}
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+	t.Fatalf("application %s was not projected into search within 30 seconds", applicationID)
 }
 
 func serviceURL(name, fallback string) string {

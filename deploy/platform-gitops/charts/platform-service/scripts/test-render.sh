@@ -96,3 +96,20 @@ printf '%s\n' "$workflow_output" | grep -q 'APP_TEMPORAL_ENABLED: "true"'
 printf '%s\n' "$workflow_output" | grep -q 'temporal.platform-infrastructure.svc.cluster.local:7233'
 printf '%s\n' "$workflow_output" | grep -q 'dns:///authorization-service.platform-development.svc.cluster.local:9090'
 printf '%s\n' "$workflow_output" | grep -q 'APP_AUTH_AUDIENCE: "workflow-service"'
+
+search_output=$(helm template search-service "$test_chart" \
+  --namespace platform-development \
+  --set name=search-service \
+  --set namespace=platform-development \
+  --set environment=development \
+  --set image.repository=ghcr.io/lihongjie0209/search-service \
+  --set image.tag=v0.1.0 \
+  --set database.schema=search \
+  --set database.migrationTable=search_schema_migrations \
+  --set search.enabled=true \
+  --set externalSecret.key=platform/development/search-service)
+
+printf '%s\n' "$search_output" | grep -q 'APP_OPENSEARCH_ENABLED: "true"'
+printf '%s\n' "$search_output" | grep -q 'opensearch.platform-infrastructure.svc.cluster.local:9200'
+printf '%s\n' "$search_output" | grep -q 'dns:///authorization-service.platform-development.svc.cluster.local:9090'
+printf '%s\n' "$search_output" | grep -q 'APP_AUTH_AUDIENCE: "search-service"'

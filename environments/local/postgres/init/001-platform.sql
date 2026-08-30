@@ -10,7 +10,7 @@ BEGIN
         'identity_service', 'tenant_service', 'authorization_service',
         'audit_service', 'config_service', 'notification_service', 'file_service',
         'scheduler_service', 'application_service', 'dictionary_service',
-        'webhook_service', 'workflow_service'
+        'webhook_service', 'workflow_service', 'search_service'
     ] LOOP
         IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = role_name) THEN
             EXECUTE format('CREATE ROLE %I LOGIN', role_name);
@@ -31,8 +31,9 @@ ALTER ROLE application_service LOGIN PASSWORD 'application-dev';
 ALTER ROLE dictionary_service LOGIN PASSWORD 'dictionary-dev';
 ALTER ROLE webhook_service LOGIN PASSWORD 'webhook-dev';
 ALTER ROLE workflow_service LOGIN PASSWORD 'workflow-dev';
+ALTER ROLE search_service LOGIN PASSWORD 'search-dev';
 
-GRANT CONNECT ON DATABASE platform TO identity_service, tenant_service, authorization_service, audit_service, config_service, notification_service, file_service, scheduler_service, application_service, dictionary_service, webhook_service, workflow_service;
+GRANT CONNECT ON DATABASE platform TO identity_service, tenant_service, authorization_service, audit_service, config_service, notification_service, file_service, scheduler_service, application_service, dictionary_service, webhook_service, workflow_service, search_service;
 
 CREATE SCHEMA IF NOT EXISTS "identity" AUTHORIZATION identity_service;
 CREATE SCHEMA IF NOT EXISTS "tenant" AUTHORIZATION tenant_service;
@@ -46,6 +47,7 @@ CREATE SCHEMA IF NOT EXISTS "application" AUTHORIZATION application_service;
 CREATE SCHEMA IF NOT EXISTS "dictionary" AUTHORIZATION dictionary_service;
 CREATE SCHEMA IF NOT EXISTS "webhook" AUTHORIZATION webhook_service;
 CREATE SCHEMA IF NOT EXISTS "workflow" AUTHORIZATION workflow_service;
+CREATE SCHEMA IF NOT EXISTS "search" AUTHORIZATION search_service;
 
 ALTER SCHEMA "identity" OWNER TO identity_service;
 ALTER SCHEMA "tenant" OWNER TO tenant_service;
@@ -59,8 +61,9 @@ ALTER SCHEMA "application" OWNER TO application_service;
 ALTER SCHEMA "dictionary" OWNER TO dictionary_service;
 ALTER SCHEMA "webhook" OWNER TO webhook_service;
 ALTER SCHEMA "workflow" OWNER TO workflow_service;
+ALTER SCHEMA "search" OWNER TO search_service;
 
-REVOKE ALL ON SCHEMA "identity", "tenant", "authorization", "audit", "config", "notification", "file", "scheduler", "application", "dictionary", "webhook", "workflow" FROM PUBLIC;
+REVOKE ALL ON SCHEMA "identity", "tenant", "authorization", "audit", "config", "notification", "file", "scheduler", "application", "dictionary", "webhook", "workflow", "search" FROM PUBLIC;
 GRANT USAGE, CREATE ON SCHEMA "identity" TO identity_service;
 GRANT USAGE, CREATE ON SCHEMA "tenant" TO tenant_service;
 GRANT USAGE, CREATE ON SCHEMA "authorization" TO authorization_service;
@@ -73,6 +76,7 @@ GRANT USAGE, CREATE ON SCHEMA "application" TO application_service;
 GRANT USAGE, CREATE ON SCHEMA "dictionary" TO dictionary_service;
 GRANT USAGE, CREATE ON SCHEMA "webhook" TO webhook_service;
 GRANT USAGE, CREATE ON SCHEMA "workflow" TO workflow_service;
+GRANT USAGE, CREATE ON SCHEMA "search" TO search_service;
 
 ALTER ROLE identity_service IN DATABASE platform SET search_path = "identity";
 ALTER ROLE tenant_service IN DATABASE platform SET search_path = "tenant";
@@ -86,3 +90,4 @@ ALTER ROLE application_service IN DATABASE platform SET search_path = "applicati
 ALTER ROLE dictionary_service IN DATABASE platform SET search_path = "dictionary";
 ALTER ROLE webhook_service IN DATABASE platform SET search_path = "webhook";
 ALTER ROLE workflow_service IN DATABASE platform SET search_path = "workflow";
+ALTER ROLE search_service IN DATABASE platform SET search_path = "search";
