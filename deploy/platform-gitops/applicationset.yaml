@@ -4,35 +4,94 @@ metadata:
   name: platform-services
   namespace: argocd
 spec:
+  goTemplate: true
+  goTemplateOptions: [missingkey=error]
   generators:
     - matrix:
         generators:
           - list:
               elements:
-                - {environment: development, cluster: https://kubernetes.default.svc, namespace: platform-development}
-                - {environment: testing, cluster: https://kubernetes.default.svc, namespace: platform-testing}
-                - {environment: production, cluster: https://kubernetes.default.svc, namespace: platform-production}
+                # Fill baseDomain to enable routes for services with exposure=public.
+                - environment: development
+                  profile: development
+                  cluster: https://kubernetes.default.svc
+                  namespace: platform-development
+                  gatewayNamespace: ingress-apisix-development
+                  ingressClass: apisix-dev
+                  environmentLabel: dev
+                  production: "false"
+                  baseDomain: ""
+                  imageTag: v0.1.0
+                - environment: testing
+                  profile: test
+                  cluster: https://kubernetes.default.svc
+                  namespace: platform-testing
+                  gatewayNamespace: ingress-apisix-testing
+                  ingressClass: apisix-test
+                  environmentLabel: test
+                  production: "false"
+                  baseDomain: ""
+                  imageTag: v0.1.0
+                - environment: production
+                  profile: production
+                  cluster: https://kubernetes.default.svc
+                  namespace: platform-production
+                  gatewayNamespace: ingress-apisix-production
+                  ingressClass: apisix-prod
+                  environmentLabel: ""
+                  production: "true"
+                  baseDomain: ""
+                  imageTag: v0.1.0
           - list:
               elements:
-                - {service: identity-service}
-                - {service: tenant-service}
-                - {service: authorization-service}
-                - {service: audit-service}
-                - {service: config-service}
-                - {service: notification-service}
-                - {service: file-service}
+                - {service: identity-service, schema: identity, database: "true", redis: "true", eventBus: "true", exposure: public}
+                - {service: tenant-service, schema: tenant, database: "true", redis: "true", eventBus: "true", exposure: public}
+                - {service: authorization-service, schema: authorization, database: "true", redis: "true", eventBus: "true", exposure: public}
+                - {service: audit-service, schema: audit, database: "true", redis: "true", eventBus: "true", exposure: public}
+                - {service: config-service, schema: config, database: "true", redis: "true", eventBus: "true", exposure: public}
+                - {service: notification-service, schema: notification, database: "true", redis: "true", eventBus: "true", exposure: public}
+                - {service: file-service, schema: file, database: "true", redis: "true", eventBus: "true", exposure: public}
+                - {service: scheduler-service, schema: scheduler, database: "true", redis: "true", eventBus: "true", exposure: public}
+                - {service: swagger-service, schema: swagger, database: "false", redis: "false", eventBus: "false", exposure: public}
+                - {service: application-service, schema: application, database: "true", redis: "true", eventBus: "true", exposure: public}
+                - {service: dictionary-service, schema: dictionary, database: "true", redis: "true", eventBus: "true", exposure: public}
+                - {service: service-registry-service, schema: service_registry, database: "false", redis: "true", eventBus: "false", exposure: public}
   template:
     metadata:
-      name: '{{service}}-{{environment}}'
+      name: '{{ .service }}-{{ .environment }}'
+      labels:
+        platform.environment: '{{ .environment }}'
+        platform.service: '{{ .service }}'
     spec:
       project: platform
       source:
-        repoURL: https://github.com/lihongjie0209/platform-gitops.git
+        repoURL: https://github.com/lihongjie0209/microservice-platform.git
         targetRevision: main
-        path: 'services/{{service}}/overlays/{{environment}}'
+        path: deploy/platform-gitops/charts/platform-service
+        helm:
+          releaseName: '{{ .service }}'
+          parameters:
+            - {name: name, value: '{{ .service }}'}
+            - {name: namespace, value: '{{ .namespace }}'}
+            - {name: environment, value: '{{ .profile }}'}
+            - {name: image.repository, value: 'ghcr.io/lihongjie0209/{{ .service }}'}
+            - {name: image.tag, value: '{{ .imageTag }}'}
+            - {name: database.enabled, value: '{{ .database }}'}
+            - {name: database.schema, value: '{{ .schema }}'}
+            - {name: database.migrationTable, value: '{{ .schema }}_schema_migrations'}
+            - {name: redis.enabled, value: '{{ .redis }}'}
+            - {name: eventBus.enabled, value: '{{ .eventBus }}'}
+            - {name: externalSecret.key, value: 'platform/{{ .environment }}/{{ .service }}'}
+            - {name: networkPolicy.gatewayNamespace, value: '{{ .gatewayNamespace }}'}
+            - {name: gateway.baseDomain, value: '{{ .baseDomain }}'}
+            - {name: gateway.environmentLabel, value: '{{ .environmentLabel }}'}
+            - {name: gateway.production, value: '{{ .production }}'}
+            - {name: gateway.ingressClassName, value: '{{ .ingressClass }}'}
+            - name: gateway.enabled
+              value: '{{ if and (eq .exposure "public") (ne .baseDomain "") }}true{{ else }}false{{ end }}'
       destination:
-        server: '{{cluster}}'
-        namespace: '{{namespace}}'
+        server: '{{ .cluster }}'
+        namespace: '{{ .namespace }}'
       syncPolicy:
         automated: {prune: true, selfHeal: true}
         syncOptions: [CreateNamespace=true, ServerSideApply=true]

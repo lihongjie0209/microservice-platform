@@ -1,0 +1,71 @@
+name: ""
+namespace: ""
+environment: production
+migration:
+  mode: initContainer
+
+replicas: 2
+image:
+  repository: ""
+  tag: ""
+
+database:
+  enabled: true
+  type: postgres
+  name: platform
+  schema: ""
+  migrationTable: ""
+
+redis:
+  enabled: true
+
+eventBus:
+  enabled: true
+  urls: nats://nats.platform-infrastructure.svc.cluster.local:4222
+  streamName: PLATFORM_EVENTS
+
+resources:
+  requests: {cpu: 100m, memory: 128Mi}
+  limits: {cpu: "1", memory: 512Mi}
+pdb:
+  enabled: true
+  minAvailable: 1
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilization: 70
+networkPolicy:
+  enabled: true
+  gatewayNamespace: ""
+  egress:
+    - ports:
+        - {port: 53, protocol: UDP}
+        - {port: 53, protocol: TCP}
+        - {port: 4222, protocol: TCP}
+        - {port: 5432, protocol: TCP}
+        - {port: 6379, protocol: TCP}
+        - {port: 443, protocol: TCP}
+externalSecret:
+  enabled: true
+  store: platform-vault
+  key: ""
+  refreshInterval: 1h
+serviceMonitor:
+  enabled: false
+
+gateway:
+  enabled: false
+  baseDomain: ""
+  environmentLabel: ""
+  production: false
+  hostname: ""
+  ingressClassName: apisix
+  servicePort: http
+  paths: ["/*"]
+  methods: [POST]
+
+swaggerDiscovery:
+  enabled: true
+  path: /swagger/doc.json
+  title: ""

@@ -268,3 +268,9 @@
 - Symptom: a consumer that intentionally omitted an optional gateway block failed while rendering a library named template with a nil-value access.
 - Root cause: a Helm library chart's `values.yaml` is not merged into the parent chart's root `.Values` passed to an included named template.
 - Prevention: named library templates default the whole optional map with `default dict`, default individual fields locally, and test both enabled and completely omitted configurations from a real consumer chart.
+
+## 2026-08-30: pre-install migration Jobs cannot consume same-release configuration
+
+- Symptom: a migration Job looked ordered before Deployment but could fail on first install because its referenced ConfigMap or ExternalSecret target did not exist yet.
+- Root cause: Helm pre-install hooks run before ordinary resources in the same release, and creation of an ExternalSecret does not synchronously create its target Secret.
+- Prevention: default Kubernetes startup migration to an init container that runs after Pod configuration resolves and before the API container; retain a hook Job only when configuration and secrets are independently pre-provisioned.

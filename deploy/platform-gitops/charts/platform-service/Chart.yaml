@@ -1,0 +1,10 @@
+apiVersion: v2
+name: platform-service
+description: Deploy one platform Go service with shared operational policies
+type: application
+version: 0.1.0
+appVersion: "1.0"
+dependencies:
+  - name: platform-library
+    version: 0.1.0
+    repository: file://../../../platform-helm

@@ -1,0 +1,81 @@
+#!/bin/sh
+set -eu
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+chart_dir=$(CDPATH= cd -- "$script_dir/.." && pwd)
+deploy_dir=$(CDPATH= cd -- "$chart_dir/../../.." && pwd)
+test_root=$(mktemp -d)
+trap 'rm -rf "$test_root"' EXIT HUP INT TERM
+
+mkdir -p "$test_root/deploy/platform-gitops/charts"
+cp -R "$deploy_dir/platform-helm" "$test_root/deploy/platform-helm"
+cp -R "$chart_dir" "$test_root/deploy/platform-gitops/charts/platform-service"
+test_chart="$test_root/deploy/platform-gitops/charts/platform-service"
+
+helm dependency build "$test_chart" >/dev/null
+helm lint "$test_chart" \
+  --set name=identity-service \
+  --set namespace=platform-development \
+  --set image.repository=ghcr.io/lihongjie0209/identity-service \
+  --set image.tag=v0.1.0 \
+  --set database.schema=identity \
+  --set database.migrationTable=identity_schema_migrations \
+  --set externalSecret.key=platform/development/identity-service >/dev/null
+
+identity_output=$(helm template identity-service "$test_chart" \
+  --namespace platform-development \
+  --set name=identity-service \
+  --set namespace=platform-development \
+  --set environment=development \
+  --set image.repository=ghcr.io/lihongjie0209/identity-service \
+  --set image.tag=v0.1.0 \
+  --set database.schema=identity \
+  --set database.migrationTable=identity_schema_migrations \
+  --set externalSecret.key=platform/development/identity-service \
+  --set networkPolicy.gatewayNamespace=ingress-apisix-development \
+  --set gateway.enabled=true \
+  --set gateway.baseDomain=aaa.com \
+  --set gateway.environmentLabel=dev \
+  --set gateway.ingressClassName=apisix-dev)
+
+printf '%s\n' "$identity_output" | grep -q 'kind: Deployment'
+printf '%s\n' "$identity_output" | grep -q 'initContainers:'
+printf '%s\n' "$identity_output" | grep -q 'name: migrate'
+if printf '%s\n' "$identity_output" | grep -q 'kind: Job'; then
+  echo "default init-container migration unexpectedly rendered a migration Job" >&2
+  exit 1
+fi
+printf '%s\n' "$identity_output" | grep -q 'kind: ApisixRoute'
+printf '%s\n' "$identity_output" | grep -q '"identity-service.dev.aaa.com"'
+printf '%s\n' "$identity_output" | grep -q 'kubernetes.io/metadata.name: ingress-apisix-development'
+printf '%s\n' "$identity_output" | grep -q 'platform.swagger/enabled: "true"'
+printf '%s\n' "$identity_output" | grep -q 'APP_EVENT_BUS_STREAM_NAME: "PLATFORM_EVENTS"'
+printf '%s\n' "$identity_output" | grep -q 'mountPath: /app/logs'
+
+registry_output=$(helm template service-registry-service "$test_chart" \
+  --namespace platform-development \
+  --set name=service-registry-service \
+  --set namespace=platform-development \
+  --set environment=development \
+  --set image.repository=ghcr.io/lihongjie0209/service-registry-service \
+  --set image.tag=v0.1.0 \
+  --set database.enabled=false \
+  --set redis.enabled=true \
+  --set eventBus.enabled=false \
+  --set externalSecret.key=platform/development/service-registry-service)
+
+if printf '%s\n' "$registry_output" | grep -q 'kind: Job'; then
+  echo "database-free registry unexpectedly rendered a migration Job" >&2
+  exit 1
+fi
+if printf '%s\n' "$registry_output" | grep -q 'initContainers:'; then
+  echo "database-free registry unexpectedly rendered a migration init container" >&2
+  exit 1
+fi
+if printf '%s\n' "$registry_output" | grep -q 'kind: ApisixRoute'; then
+  echo "gateway-disabled registry unexpectedly rendered an APISIX route" >&2
+  exit 1
+fi
+printf '%s\n' "$registry_output" | grep -q 'APP_DATABASE_ENABLED: "false"'
+printf '%s\n' "$registry_output" | grep -q 'APP_REDIS_ENABLED: "true"'
+printf '%s\n' "$registry_output" | grep -q 'APP_EVENT_BUS_ENABLED: "false"'

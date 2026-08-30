@@ -25,7 +25,7 @@
 - `platform-go` 维护主体/审计上下文、JWT/JWKS/PSK 拦截器、统一授权、全局错误码、Redsync 分布式锁、JetStream、事务 outbox、动态配置客户端、注册/发现缓存与故障恢复 SDK 和敏感字段脱敏。
 - 所有服务使用独立 PostgreSQL Schema、角色和迁移表；Compose bootstrap 对新旧数据卷均幂等协调账号、密码、所有权和 search_path。
 - 服务镜像使用非 root 用户，预创建可写日志目录，并通过 ldflags 注入版本、Git commit 和构建时间。
-- Helm Library Chart 与 GitOps 示例覆盖 Service、Deployment、迁移 initContainer/Job 约束、探针、HPA、PDB、NetworkPolicy 和 ExternalSecret。
+- Helm Library Chart 与 GitOps ApplicationSet 覆盖全部平台服务的 Service、Deployment、启动前迁移 initContainer、探针、HPA、PDB、NetworkPolicy、ExternalSecret、Swagger 发现和显式 APISIX 路由；服务能力与环境配置分层维护。
 - 本地 `platform` Compose Profile 包含 PostgreSQL、MySQL、Redis、NATS JetStream、MinIO 和全部 P0 服务；不包含非必需的可观测性后端。
 
 ## 验证证据

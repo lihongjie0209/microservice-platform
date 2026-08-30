@@ -1,6 +1,8 @@
 name: ""
 namespace: platform
 environment: production
+migration:
+  mode: initContainer
 replicas: 2
 image:
   repository: ""
@@ -12,6 +14,7 @@ pdb: {minAvailable: 1}
 autoscaling: {minReplicas: 2, maxReplicas: 10, targetCPUUtilization: 70}
 networkPolicy:
   egress: []
+  gatewayNamespace: ""
 externalSecret:
   store: ""
   key: ""
@@ -26,3 +29,7 @@ gateway:
   servicePort: http
   paths: ["/*"]
   methods: [POST]
+swaggerDiscovery:
+  enabled: false
+  path: /swagger/doc.json
+  title: ""

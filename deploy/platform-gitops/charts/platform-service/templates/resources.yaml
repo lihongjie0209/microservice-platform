@@ -1,0 +1,33 @@
+{{ include "platform.serviceAccount" . }}
+---
+{{ include "platform.deployment" . }}
+---
+{{ include "platform.service" . }}
+{{- if and .Values.database.enabled (eq .Values.migration.mode "job") }}
+---
+{{ include "platform.migrationJob" . }}
+{{- end }}
+{{- if .Values.pdb.enabled }}
+---
+{{ include "platform.podDisruptionBudget" . }}
+{{- end }}
+{{- if .Values.autoscaling.enabled }}
+---
+{{ include "platform.horizontalPodAutoscaler" . }}
+{{- end }}
+{{- if .Values.networkPolicy.enabled }}
+---
+{{ include "platform.networkPolicy" . }}
+{{- end }}
+{{- if .Values.externalSecret.enabled }}
+---
+{{ include "platform.externalSecret" . }}
+{{- end }}
+{{- if .Values.serviceMonitor.enabled }}
+---
+{{ include "platform.serviceMonitor" . }}
+{{- end }}
+{{- if .Values.gateway.enabled }}
+---
+{{ include "platform.apisixRoute" . }}
+{{- end }}

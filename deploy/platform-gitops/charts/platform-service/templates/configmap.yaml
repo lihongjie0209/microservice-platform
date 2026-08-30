@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ required "name is required" .Values.name }}
+  namespace: {{ required "namespace is required" .Values.namespace }}
+data:
+  APP_ENV: {{ .Values.environment | quote }}
+  APP_HTTP_ADDRESS: 0.0.0.0:8080
+  APP_GRPC_ADDRESS: 0.0.0.0:9090
+  APP_DATABASE_ENABLED: {{ .Values.database.enabled | quote }}
+  APP_DATABASE_TYPE: {{ .Values.database.type | quote }}
+  APP_DATABASE_NAME: {{ .Values.database.name | quote }}
+  APP_DATABASE_SCHEMA: {{ .Values.database.schema | quote }}
+  APP_REDIS_ENABLED: {{ .Values.redis.enabled | quote }}
+  APP_EVENT_BUS_ENABLED: {{ .Values.eventBus.enabled | quote }}
+  APP_EVENT_BUS_URLS: {{ .Values.eventBus.urls | quote }}
+  APP_EVENT_BUS_STREAM_NAME: {{ .Values.eventBus.streamName | quote }}
+  APP_OBSERVABILITY_METRICS_ENABLED: "true"
+  APP_MIGRATION_AUTO_UP: "false"
+  APP_MIGRATION_CREATE_SCHEMA: "false"
+  APP_MIGRATION_PATH: /app/migrations/postgres
+  APP_MIGRATION_TABLE: {{ .Values.database.migrationTable | quote }}

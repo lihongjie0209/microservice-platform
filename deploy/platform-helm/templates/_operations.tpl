@@ -44,6 +44,9 @@ spec:
   ingress:
     - from:
         - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: {{ .Values.namespace }}}}
+        {{- with .Values.networkPolicy.gatewayNamespace }}
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: {{ . }}}}
+        {{- end }}
       ports: [{port: 8080}, {port: 9090}]
   egress:
     {{- toYaml .Values.networkPolicy.egress | nindent 4 }}

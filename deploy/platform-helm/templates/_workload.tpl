@@ -1,4 +1,5 @@
 {{- define "platform.deployment" -}}
+{{- $migration := .Values.migration | default dict -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -24,6 +25,25 @@ spec:
       terminationGracePeriodSeconds: 30
       securityContext:
         {{- include "platform.podSecurityContext" . | nindent 8 }}
+      {{- if and .Values.database.enabled (eq (get $migration "mode" | default "initContainer") "initContainer") }}
+      initContainers:
+        - name: migrate
+          image: {{ required "image.repository is required" .Values.image.repository }}:{{ required "image.tag is required" .Values.image.tag }}
+          imagePullPolicy: IfNotPresent
+          command: ["/app/migrate"]
+          args: ["-env", {{ .Values.environment | quote }}, "-direction", "up"]
+          envFrom:
+            - configMapRef: {name: {{ .Values.name }}}
+            - secretRef: {name: {{ .Values.name }}}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+          securityContext:
+            {{- include "platform.containerSecurityContext" . | nindent 12 }}
+          volumeMounts:
+            - name: logs
+              mountPath: /app/logs
+      {{- end }}
       containers:
         - name: api
           image: {{ required "image.repository is required" .Values.image.repository }}:{{ required "image.tag is required" .Values.image.tag }}
@@ -41,6 +61,12 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           securityContext:
             {{- include "platform.containerSecurityContext" . | nindent 12 }}
+          volumeMounts:
+            - name: logs
+              mountPath: /app/logs
+      volumes:
+        - name: logs
+          emptyDir: {}
 {{- end }}
 
 {{- define "platform.service" -}}
@@ -51,6 +77,16 @@ metadata:
   namespace: {{ .Values.namespace }}
   labels:
     {{- include "platform.labels" . | nindent 4 }}
+    {{- if .Values.swaggerDiscovery.enabled }}
+    platform.swagger/enabled: "true"
+    {{- end }}
+  {{- if .Values.swaggerDiscovery.enabled }}
+  annotations:
+    platform.swagger/enabled: "true"
+    platform.swagger/port: http
+    platform.swagger/path: {{ .Values.swaggerDiscovery.path | quote }}
+    platform.swagger/title: {{ .Values.swaggerDiscovery.title | default .Values.name | quote }}
+  {{- end }}
 spec:
   selector: {app.kubernetes.io/name: {{ .Values.name }}}
   ports:
@@ -59,6 +95,7 @@ spec:
 {{- end }}
 
 {{- define "platform.migrationJob" -}}
+{{- if .Values.database.enabled }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -85,4 +122,11 @@ spec:
             - secretRef: {name: {{ .Values.name }}}
           securityContext:
             {{- include "platform.containerSecurityContext" . | nindent 12 }}
+          volumeMounts:
+            - name: logs
+              mountPath: /app/logs
+      volumes:
+        - name: logs
+          emptyDir: {}
+{{- end }}
 {{- end }}
