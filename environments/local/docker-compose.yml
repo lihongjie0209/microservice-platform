@@ -159,6 +159,7 @@ services:
     depends_on:
       <<: *platform-dependencies
       identity-service: {condition: service_healthy}
+      dictionary-service: {condition: service_healthy}
     environment:
       <<: *platform-env
       APP_DATABASE_SCHEMA: tenant
@@ -287,6 +288,22 @@ services:
       APP_AUTH_JWKS_URL: http://identity-service:8080/.well-known/jwks.json
       APP_AUTH_AUDIENCE: application-service
 
+  dictionary-service:
+    <<: *platform-service
+    build: {context: ../../services/dictionary-service, args: {GOPROXY: "${GOPROXY:-https://goproxy.cn,direct}"}}
+    ports: ["18091:8080", "19091:9090"]
+    depends_on:
+      <<: *platform-dependencies
+      identity-service: {condition: service_healthy}
+    environment:
+      <<: *platform-env
+      APP_DATABASE_SCHEMA: dictionary
+      APP_DATABASE_DSN: postgres://dictionary_service:dictionary-dev@postgres:5432/platform?sslmode=disable&search_path=dictionary
+      APP_MIGRATION_DATABASE_URL: postgres://dictionary_service:dictionary-dev@postgres:5432/platform?sslmode=disable&search_path=dictionary
+      APP_MIGRATION_TABLE: dictionary_schema_migrations
+      APP_AUTH_JWKS_URL: http://identity-service:8080/.well-known/jwks.json
+      APP_AUTH_AUDIENCE: dictionary-service
+
   swagger-service:
     profiles: [platform]
     restart: unless-stopped
@@ -302,6 +319,7 @@ services:
       file-service: {condition: service_healthy}
       scheduler-service: {condition: service_healthy}
       application-service: {condition: service_healthy}
+      dictionary-service: {condition: service_healthy}
     environment:
       APP_ENV: compose
       APP_HTTP_ADDRESS: 0.0.0.0:8080

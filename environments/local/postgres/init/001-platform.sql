@@ -9,7 +9,7 @@ BEGIN
     FOREACH role_name IN ARRAY ARRAY[
         'identity_service', 'tenant_service', 'authorization_service',
         'audit_service', 'config_service', 'notification_service', 'file_service',
-        'scheduler_service', 'application_service'
+        'scheduler_service', 'application_service', 'dictionary_service'
     ] LOOP
         IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = role_name) THEN
             EXECUTE format('CREATE ROLE %I LOGIN', role_name);
@@ -27,8 +27,9 @@ ALTER ROLE notification_service LOGIN PASSWORD 'notification-dev';
 ALTER ROLE file_service LOGIN PASSWORD 'file-dev';
 ALTER ROLE scheduler_service LOGIN PASSWORD 'scheduler-dev';
 ALTER ROLE application_service LOGIN PASSWORD 'application-dev';
+ALTER ROLE dictionary_service LOGIN PASSWORD 'dictionary-dev';
 
-GRANT CONNECT ON DATABASE platform TO identity_service, tenant_service, authorization_service, audit_service, config_service, notification_service, file_service, scheduler_service, application_service;
+GRANT CONNECT ON DATABASE platform TO identity_service, tenant_service, authorization_service, audit_service, config_service, notification_service, file_service, scheduler_service, application_service, dictionary_service;
 
 CREATE SCHEMA IF NOT EXISTS "identity" AUTHORIZATION identity_service;
 CREATE SCHEMA IF NOT EXISTS "tenant" AUTHORIZATION tenant_service;
@@ -39,6 +40,7 @@ CREATE SCHEMA IF NOT EXISTS "notification" AUTHORIZATION notification_service;
 CREATE SCHEMA IF NOT EXISTS "file" AUTHORIZATION file_service;
 CREATE SCHEMA IF NOT EXISTS "scheduler" AUTHORIZATION scheduler_service;
 CREATE SCHEMA IF NOT EXISTS "application" AUTHORIZATION application_service;
+CREATE SCHEMA IF NOT EXISTS "dictionary" AUTHORIZATION dictionary_service;
 
 ALTER SCHEMA "identity" OWNER TO identity_service;
 ALTER SCHEMA "tenant" OWNER TO tenant_service;
@@ -49,8 +51,9 @@ ALTER SCHEMA "notification" OWNER TO notification_service;
 ALTER SCHEMA "file" OWNER TO file_service;
 ALTER SCHEMA "scheduler" OWNER TO scheduler_service;
 ALTER SCHEMA "application" OWNER TO application_service;
+ALTER SCHEMA "dictionary" OWNER TO dictionary_service;
 
-REVOKE ALL ON SCHEMA "identity", "tenant", "authorization", "audit", "config", "notification", "file", "scheduler", "application" FROM PUBLIC;
+REVOKE ALL ON SCHEMA "identity", "tenant", "authorization", "audit", "config", "notification", "file", "scheduler", "application", "dictionary" FROM PUBLIC;
 GRANT USAGE, CREATE ON SCHEMA "identity" TO identity_service;
 GRANT USAGE, CREATE ON SCHEMA "tenant" TO tenant_service;
 GRANT USAGE, CREATE ON SCHEMA "authorization" TO authorization_service;
@@ -60,6 +63,7 @@ GRANT USAGE, CREATE ON SCHEMA "notification" TO notification_service;
 GRANT USAGE, CREATE ON SCHEMA "file" TO file_service;
 GRANT USAGE, CREATE ON SCHEMA "scheduler" TO scheduler_service;
 GRANT USAGE, CREATE ON SCHEMA "application" TO application_service;
+GRANT USAGE, CREATE ON SCHEMA "dictionary" TO dictionary_service;
 
 ALTER ROLE identity_service IN DATABASE platform SET search_path = "identity";
 ALTER ROLE tenant_service IN DATABASE platform SET search_path = "tenant";
@@ -70,3 +74,4 @@ ALTER ROLE notification_service IN DATABASE platform SET search_path = "notifica
 ALTER ROLE file_service IN DATABASE platform SET search_path = "file";
 ALTER ROLE scheduler_service IN DATABASE platform SET search_path = "scheduler";
 ALTER ROLE application_service IN DATABASE platform SET search_path = "application";
+ALTER ROLE dictionary_service IN DATABASE platform SET search_path = "dictionary";

@@ -244,3 +244,15 @@
 - Symptom: an application-service migration passed PostgreSQL but MySQL rejected `TEXT DEFAULT ''`; indexed and unique `TEXT` columns would also require prefix lengths.
 - Root cause: PostgreSQL-oriented type guidance was copied verbatim into a MySQL physical schema.
 - Prevention: keep PostgreSQL/Kingbase domain strings as `TEXT`; in MySQL use bounded `VARCHAR` for identifiers, foreign keys, unique keys, and indexed values, leave payload/display text as `TEXT` without defaults, and run both database migration suites before publishing.
+
+## 2026-08-30: logical provider registration needs replica coordination
+
+- Symptom: multiple replicas of one provider would repeatedly rotate the same service-level lease token, causing otherwise healthy replicas to invalidate each other's heartbeats.
+- Root cause: the registry row identifies a logical service and stable Kubernetes DNS target, while lifecycle hooks execute independently in every Pod.
+- Prevention: elect one registration coordinator per logical service with the shared ownership-safe Redis lock, renew that leadership separately from the provider lease, and stop/unregister immediately after leadership is lost.
+
+## 2026-08-30: protobuf responses must not be copied by value
+
+- Symptom: provider client tests passed but `go vet` rejected assignments such as `*response = *value` because generated messages contain an internal mutex.
+- Root cause: an outbound wrapper treated generated Protobuf messages as ordinary value structs.
+- Prevention: keep Protobuf messages behind pointers and transfer content with `proto.Reset` plus `proto.Merge` (or return the allocated pointer directly); retain `go vet` as a required service gate.

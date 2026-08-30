@@ -107,9 +107,22 @@
 
 负责聚合所有服务的 OpenAPI 文档并提供统一 Swagger UI。开发环境使用静态服务清单；Kubernetes 环境通过只读 Service Informer 自动发现带 `platform.swagger/enabled=true` 标签与注解的服务，缓存最后一次有效文档，单个服务故障不影响目录和其他文档。
 
-### 10. application-service（下一阶段）
+### 10. application-service
 
 负责应用目录、菜单发布版本和租户应用授权。菜单仅引用 authorization-service 的权限码，租户与成员事实仍归 tenant-service。第一阶段不单独拆 menu-service；详细边界见 `application-service-design.md`。
+
+### 11. dictionary-service
+
+负责静态字典版本和动态业务字典的统一入口。
+
+- 静态字典草稿、乐观锁更新、不可变发布快照、分页搜索、树与批量编码解析
+- 动态 Provider 能力注册、租约心跳、注销和失效隔离
+- 统一 `DictionaryProviderService` 数据面，不生成服务专用 Client，也不跨 schema 查询
+- Provider DNS 白名单、PSK/mTLS、超时、重试、熔断、Redis 缓存、指标和 Trace
+- Provider 多副本通过共享 Redis 领导租约选出一个注册协调者，数据面继续由 Kubernetes Service 负载均衡
+- 发布和 Provider 变更通过事务 outbox 投递 NATS JetStream
+
+tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业务服务只注册自己拥有的数据。
 
 ## P0：共享工程资产
 
@@ -206,6 +219,7 @@ file-service
 scheduler-service
 swagger-service
 application-service
+dictionary-service
 ```
 
 `microgen` 当前仍在模板仓库中，稳定后再拆成独立仓库发布二进制。

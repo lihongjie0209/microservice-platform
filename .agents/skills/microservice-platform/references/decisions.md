@@ -17,6 +17,7 @@
 - `swagger-service` aggregates OpenAPI documents without a database. Local environments use static sources; Kubernetes uses a read-only `client-go` Service SharedInformer selected by `platform.swagger/enabled=true`. The UI forwards the authenticated user's multi-audience JWT to protected upstream document endpoints and caches only validated documents.
 - Application catalog, menu releases, and tenant application grants initially belong to one `application-service`. Tenant facts remain in tenant-service and permission decisions remain in authorization-service; menu-service and entitlement-service are split only when their lifecycle and team boundaries become independently complex.
 - `dictionary-service` is the unified dictionary entry point. It persists versioned static dictionaries, while dynamic dictionaries stay in their owning services behind `DictionaryProviderService`. Providers register capabilities, allow-listed filters/sorts, target, timeout, cache TTL, and a renewable lease; the gateway applies authentication, timeout, circuit breaking, caching, and normalized pagination/tree semantics without cross-schema reads.
+- Dynamic provider registration represents one logical Kubernetes Service, not one Pod. `platform-go/dictionaryprovider` uses the shared Redis/Redsync lease for replica leader election so exactly one replica registers and renews the logical provider; another replica takes over after ownership loss. The provider data plane remains load-balanced through the Kubernetes Service DNS target.
 
 ## Data
 

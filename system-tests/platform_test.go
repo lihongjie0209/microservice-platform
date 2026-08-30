@@ -31,7 +31,8 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	schedulerURL := serviceURL("SCHEDULER", "http://127.0.0.1:18088")
 	swaggerURL := serviceURL("SWAGGER", "http://127.0.0.1:18089")
 	applicationURL := serviceURL("APPLICATION", "http://127.0.0.1:18090")
-	for _, baseURL := range []string{identityURL, tenantURL, authorizationURL, auditURL, schedulerURL, swaggerURL, applicationURL} {
+	dictionaryURL := serviceURL("DICTIONARY", "http://127.0.0.1:18091")
+	for _, baseURL := range []string{identityURL, tenantURL, authorizationURL, auditURL, schedulerURL, swaggerURL, applicationURL, dictionaryURL} {
 		waitReady(t, ctx, baseURL)
 	}
 	suffix := fmt.Sprint(time.Now().UnixNano())
@@ -61,6 +62,33 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	}
 	decodeBody(t, createdTenant, &tenantResult)
 	tenantID := tenantResult.Tenant.ID
+	organizationResponse := post(t, ctx, tenantURL+"/api/v1/organization-units/create", tokens.AccessToken, map[string]any{"tenant_id": tenantID, "code": "engineering", "name": "Engineering"})
+	var organization struct {
+		Code string `json:"code"`
+		Name string `json:"name"`
+	}
+	decodeBody(t, organizationResponse, &organization)
+	dictionaryResponse := post(t, ctx, dictionaryURL+"/api/v1/dictionaries/query", tokens.AccessToken, map[string]any{"tenant_id": tenantID, "dictionary_code": "tenant.organization_units", "keyword": "Engineer", "page": 1, "page_size": 20})
+	var dictionaryPage struct {
+		Items []struct {
+			Code string `json:"code"`
+			Name string `json:"name"`
+		} `json:"items"`
+		Total int64 `json:"total"`
+	}
+	decodeBody(t, dictionaryResponse, &dictionaryPage)
+	if dictionaryPage.Total != 1 || len(dictionaryPage.Items) != 1 || dictionaryPage.Items[0].Code != organization.Code || dictionaryPage.Items[0].Name != organization.Name {
+		t.Fatalf("dynamic organization dictionary query mismatch: %+v", dictionaryPage)
+	}
+	resolvedResponse := post(t, ctx, dictionaryURL+"/api/v1/dictionaries/resolve", tokens.AccessToken, map[string]any{"tenant_id": tenantID, "dictionary_code": "tenant.organization_units", "codes": []string{"engineering", "missing"}})
+	var resolved []struct {
+		Code  string `json:"code"`
+		Found bool   `json:"found"`
+	}
+	decodeBody(t, resolvedResponse, &resolved)
+	if len(resolved) != 2 || !resolved[0].Found || resolved[1].Found {
+		t.Fatalf("dynamic organization dictionary resolve mismatch: %+v", resolved)
+	}
 	applicationResponse := post(t, ctx, applicationURL+"/api/v1/applications/create", tokens.AccessToken, map[string]any{
 		"code": "system_" + suffix, "name": "System Application", "default_route": "/home", "metadata_json": `{}`,
 	})
@@ -70,7 +98,7 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	}
 	decodeBody(t, applicationResponse, &application)
 	post(t, ctx, applicationURL+"/api/v1/applications/menus/upsert", tokens.AccessToken, map[string]any{
-		"menu": map[string]any{"application_id": application.ID, "code": "home", "type": "page", "name": "Home", "route": "/home", "component": "HomePage", "permission_code": "home.read", "visible": true},
+		"menu":             map[string]any{"application_id": application.ID, "code": "home", "type": "page", "name": "Home", "route": "/home", "component": "HomePage", "permission_code": "home.read", "visible": true},
 		"expected_version": 0,
 	})
 	post(t, ctx, applicationURL+"/api/v1/applications/menus/publish", tokens.AccessToken, map[string]any{
@@ -148,7 +176,9 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	}
 	getContains(t, ctx, swaggerURL+"/swagger/services", "scheduler-service")
 	getContains(t, ctx, swaggerURL+"/swagger/services", "application-service")
+	getContains(t, ctx, swaggerURL+"/swagger/services", "dictionary-service")
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/identity-service")
+	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/dictionary-service")
 }
 
 func serviceURL(name, fallback string) string {
