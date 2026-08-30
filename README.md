@@ -16,7 +16,7 @@ microservice-platform/
 
 ## 第一阶段目标
 
-当前最小平台闭环包含身份认证、权限、租户、应用与菜单、统一数据字典、审计、配置、通知、文件、动态 gRPC 调度和 Swagger 聚合服务；业务服务通过统一契约、Provider SDK 和 JetStream 事件接入。工作流、搜索、规则引擎等能力等到出现明确业务需求后再独立建设。
+当前最小平台闭环包含身份认证、权限、租户、应用与菜单、统一数据字典、服务注册发现、审计、配置、通知、文件、动态 gRPC 调度和 Swagger 聚合服务；业务服务通过统一契约、Provider SDK 和 JetStream 事件接入。工作流、搜索、规则引擎等能力等到出现明确业务需求后再独立建设。
 
 详细规划见 [平台基础服务规划](docs/platform-services.md)，已交付能力和审计证据见 [P0 完成矩阵](docs/completion-matrix.md)。
 

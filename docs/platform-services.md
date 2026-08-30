@@ -116,13 +116,23 @@
 负责静态字典版本和动态业务字典的统一入口。
 
 - 静态字典草稿、乐观锁更新、不可变发布快照、分页搜索、树与批量编码解析
-- 动态 Provider 能力注册、租约心跳、注销和失效隔离
+- 动态 Provider 能力由 service-registry-service 注册、续租、发现和失效隔离
 - 统一 `DictionaryProviderService` 数据面，不生成服务专用 Client，也不跨 schema 查询
 - Provider DNS 白名单、PSK/mTLS、超时、重试、熔断、Redis 缓存、指标和 Trace
-- Provider 多副本通过共享 Redis 领导租约选出一个注册协调者，数据面继续由 Kubernetes Service 负载均衡
+- 每个 Provider 实例独立注册；字典网关通过公共 SDK 的缓存、变更流、被动摘除和最后有效快照完成故障恢复
 - 发布和 Provider 变更通过事务 outbox 投递 NATS JetStream
 
 tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业务服务只注册自己拥有的数据。
+
+### 12. service-registry-service
+
+负责平台应用层的实例租约、元数据目录和动态发现，不替代 Kubernetes DNS/Service，也不自行实现一致性协议。
+
+- Redis Lua 原子维护实例、所有权令牌、TTL、服务索引和全局 revision
+- Redis Stream 保存可按 revision 恢复的实例变更，支持 gRPC server-stream watch
+- 实例注册、续租、draining 和注销使用 PSK/mTLS；查询按服务名或元数据选择器发现
+- `platform-go/serviceregistry` 提供自动重注册、抖动退避、内存/磁盘快照、最大陈旧时间、加权轮询和故障实例临时摘除
+- Kubernetes 环境仍由 Service/DNS 提供基础网络寻址；注册中心只补充应用元数据和实例级状态
 
 ## P0：共享工程资产
 
@@ -249,5 +259,5 @@ dictionary-service
 - 独立分布式锁服务：直接使用 Redis 成熟锁组件。
 - 独立数据库访问服务：会形成低效且脆弱的数据代理层。
 - 通用 CRUD 服务：缺少明确领域边界，最终会变成新的单体。
-- 自研注册中心：Kubernetes DNS/Service 已覆盖大部分需求。
+- 自研共识型注册中心：不实现 Raft/选主；当前注册能力建立在 Redis 租约和 Kubernetes 网络寻址之上。
 - 自研配置密钥存储：密钥交给成熟 Secret 系统。

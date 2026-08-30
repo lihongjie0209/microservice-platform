@@ -256,3 +256,9 @@
 - Symptom: provider client tests passed but `go vet` rejected assignments such as `*response = *value` because generated messages contain an internal mutex.
 - Root cause: an outbound wrapper treated generated Protobuf messages as ordinary value structs.
 - Prevention: keep Protobuf messages behind pointers and transfer content with `proto.Reset` plus `proto.Merge` (or return the allocated pointer directly); retain `go vet` as a required service gate.
+
+## 2026-08-30: metadata discovery must support unknown service names
+
+- Symptom: a dictionary gateway could discover instances only after it already knew every provider service name.
+- Root cause: the first registry list/watch contract required an exact service name, which made cross-domain capability discovery circular.
+- Prevention: allow an empty service name only when a non-empty metadata selector is supplied, test cross-service selection, and keep domain-specific metadata interpretation in the consuming service.

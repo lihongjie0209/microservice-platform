@@ -159,7 +159,7 @@ services:
     depends_on:
       <<: *platform-dependencies
       identity-service: {condition: service_healthy}
-      dictionary-service: {condition: service_healthy}
+      service-registry-service: {condition: service_healthy}
     environment:
       <<: *platform-env
       APP_DATABASE_SCHEMA: tenant
@@ -295,6 +295,7 @@ services:
     depends_on:
       <<: *platform-dependencies
       identity-service: {condition: service_healthy}
+      service-registry-service: {condition: service_healthy}
     environment:
       <<: *platform-env
       APP_DATABASE_SCHEMA: dictionary
@@ -303,6 +304,19 @@ services:
       APP_MIGRATION_TABLE: dictionary_schema_migrations
       APP_AUTH_JWKS_URL: http://identity-service:8080/.well-known/jwks.json
       APP_AUTH_AUDIENCE: dictionary-service
+
+  service-registry-service:
+    <<: *platform-service
+    build: {context: ../../services/service-registry-service, args: {GOPROXY: "${GOPROXY:-https://goproxy.cn,direct}"}}
+    ports: ["18092:8080", "19092:9090"]
+    environment:
+      <<: *platform-env
+      APP_DATABASE_ENABLED: "false"
+      APP_MIGRATION_AUTO_UP: "false"
+      APP_EVENT_BUS_ENABLED: "false"
+      APP_CRON_ENABLED: "false"
+      APP_AUTH_PSK_ENABLED: "true"
+      APP_AUTH_PSK_KEY: registry-dev-psk-00000000000000000000
 
   swagger-service:
     profiles: [platform]
@@ -320,6 +334,7 @@ services:
       scheduler-service: {condition: service_healthy}
       application-service: {condition: service_healthy}
       dictionary-service: {condition: service_healthy}
+      service-registry-service: {condition: service_healthy}
     environment:
       APP_ENV: compose
       APP_HTTP_ADDRESS: 0.0.0.0:8080
