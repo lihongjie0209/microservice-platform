@@ -254,6 +254,42 @@ services:
       APP_OBJECT_STORAGE_SECRET_KEY: platform-minio-dev
       APP_OBJECT_STORAGE_BUCKET: platform-files
 
+  scheduler-service:
+    <<: *platform-service
+    build: {context: ../../services/scheduler-service, args: {GOPROXY: "${GOPROXY:-https://goproxy.cn,direct}"}}
+    ports: ["18088:8080", "19088:9090"]
+    depends_on:
+      <<: *platform-dependencies
+      identity-service: {condition: service_healthy}
+      audit-service: {condition: service_healthy}
+    environment:
+      <<: *platform-env
+      APP_DATABASE_SCHEMA: scheduler
+      APP_DATABASE_DSN: postgres://scheduler_service:scheduler-dev@postgres:5432/platform?sslmode=disable&search_path=scheduler
+      APP_MIGRATION_DATABASE_URL: postgres://scheduler_service:scheduler-dev@postgres:5432/platform?sslmode=disable&search_path=scheduler
+      APP_MIGRATION_TABLE: scheduler_schema_migrations
+      APP_AUTH_JWKS_URL: http://identity-service:8080/.well-known/jwks.json
+      APP_AUTH_AUDIENCE: scheduler-service
+
+  swagger-service:
+    profiles: [platform]
+    restart: unless-stopped
+    build: {context: ../../services/swagger-service, args: {GOPROXY: "${GOPROXY:-https://goproxy.cn,direct}"}}
+    ports: ["18089:8080", "19089:9090"]
+    depends_on:
+      identity-service: {condition: service_healthy}
+      tenant-service: {condition: service_healthy}
+      authorization-service: {condition: service_healthy}
+      audit-service: {condition: service_healthy}
+      config-service: {condition: service_healthy}
+      notification-service: {condition: service_healthy}
+      file-service: {condition: service_healthy}
+      scheduler-service: {condition: service_healthy}
+    environment:
+      APP_ENV: compose
+      APP_HTTP_ADDRESS: 0.0.0.0:8080
+      APP_GRPC_ENABLED: "false"
+
 
 volumes:
   postgres-data:

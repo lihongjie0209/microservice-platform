@@ -91,6 +91,26 @@
 - 病毒扫描/内容审核扩展点
 - S3 兼容存储，不让业务服务持有存储主密钥
 
+### 8. scheduler-service
+
+负责集中管理和执行跨服务的定时调用。
+
+- 保存 Cron、时区、超时、目标服务、完整 RPC 方法名和 JSON 请求
+- 通过服务端反射在运行时解析下游 Protobuf 描述并调用一元 gRPC 接口
+- 下游仅能选择配置中的服务白名单，连接认证、mTLS 和地址不进入任务表
+- 分布式锁防止多副本重复执行，执行记录保留请求、响应、耗时和错误状态
+- 管理接口自身使用版本化 `platform.scheduler.v1` 契约，HTTP 与 gRPC 均可操作
+
+它不生成任何下游业务 Client Stub，因此下游新增兼容字段或 RPC 时无需发布 scheduler-service；删除字段、改类型等破坏性变更仍由契约仓库的 Buf 门禁禁止。下游必须在内网端口开放 Server Reflection，并通过 NetworkPolicy 与 mTLS/PSK 限制访问。
+
+### 9. swagger-service
+
+负责聚合所有服务的 OpenAPI 文档并提供统一 Swagger UI。开发环境使用静态服务清单；Kubernetes 环境通过只读 Service Informer 自动发现带 `platform.swagger/enabled=true` 标签与注解的服务，缓存最后一次有效文档，单个服务故障不影响目录和其他文档。
+
+### 10. application-service（下一阶段）
+
+负责应用目录、菜单发布版本和租户应用授权。菜单仅引用 authorization-service 的权限码，租户与成员事实仍归 tenant-service。第一阶段不单独拆 menu-service；详细边界见 `application-service-design.md`。
+
 ## P0：共享工程资产
 
 这些应独立版本化，但不是运行中的微服务：
@@ -138,12 +158,6 @@
 - 通过事件更新 Elasticsearch/OpenSearch 索引
 - 搜索结果最终一致，不成为业务事实来源
 
-### scheduler-service
-
-- 跨服务、可视化、可重试的集中任务调度
-- 单服务内部任务继续使用当前 Cron 能力
-- 只有需要统一治理、分片或人工重跑时才独立
-
 ### webhook-service
 
 - 外部订阅、签名、投递、重试和回放
@@ -189,6 +203,9 @@ audit-service
 config-service
 notification-service
 file-service
+scheduler-service
+swagger-service
+application-service
 ```
 
 `microgen` 当前仍在模板仓库中，稳定后再拆成独立仓库发布二进制。
@@ -200,7 +217,7 @@ file-service
 3. 建设 `microservice-platform-go`，统一客户端、中间件和契约版本。
 4. 建设 `platform-helm` 与 `platform-gitops`，打通一个服务的交付闭环。
 5. 实现 identity、authorization、tenant 三个核心服务。
-6. 接入 audit，再实现 notification、file 和 config。
+6. 接入 audit，再实现 notification、file、config 和 scheduler。
 7. 用两个真实业务服务验证认证、授权、审计、事件和部署链路。
 
 ## 测试门禁

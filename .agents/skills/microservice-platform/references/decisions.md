@@ -13,6 +13,9 @@
 - All `platform.>` domain subjects belong to the single `PLATFORM_EVENTS` JetStream stream. Services may idempotently provision the same stream; independent processing is represented by durable consumer names, never overlapping streams.
 - The only platform event wire format is protobuf `platform.common.v1.EventEnvelope`; JSON broker envelopes are not allowed on `platform.>` subjects.
 - `identity-service` is the only platform token issuer. Other services verify EdDSA access tokens from its JWKS endpoint through `platform-go`, validating issuer and service-specific audience; they never expose credential login endpoints.
+- `scheduler-service` dynamically invokes allow-listed unary internal RPCs using Server Reflection plus JSON-to-Protobuf descriptors. It never compiles downstream business client stubs; its own management server still implements the versioned `platform.scheduler.v1` contract normally.
+- `swagger-service` aggregates OpenAPI documents without a database. Local environments use static sources; Kubernetes uses a read-only `client-go` Service SharedInformer selected by `platform.swagger/enabled=true`. The UI forwards the authenticated user's multi-audience JWT to protected upstream document endpoints and caches only validated documents.
+- Application catalog, menu releases, and tenant application grants initially belong to one `application-service`. Tenant facts remain in tenant-service and permission decisions remain in authorization-service; menu-service and entitlement-service are split only when their lifecycle and team boundaries become independently complex.
 
 ## Data
 

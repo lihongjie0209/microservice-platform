@@ -9,7 +9,7 @@ BUF_VERSION ?= v1.50.0
 PROTOC_GEN_GO_VERSION ?= v1.36.12
 PROTOC_GEN_GO_GRPC_VERSION ?= v1.5.1
 GOLANGCI_LINT_VERSION ?= v2.13.1
-SERVICES := identity-service tenant-service authorization-service audit-service config-service notification-service file-service
+SERVICES := identity-service tenant-service authorization-service audit-service config-service notification-service file-service scheduler-service swagger-service
 SERVICE ?=
 SERVICE_DIR = services/$(SERVICE)
 

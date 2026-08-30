@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"testing"
@@ -27,7 +28,9 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	tenantURL := serviceURL("TENANT", "http://127.0.0.1:18082")
 	authorizationURL := serviceURL("AUTHORIZATION", "http://127.0.0.1:18083")
 	auditURL := serviceURL("AUDIT", "http://127.0.0.1:18084")
-	for _, baseURL := range []string{identityURL, tenantURL, authorizationURL, auditURL} {
+	schedulerURL := serviceURL("SCHEDULER", "http://127.0.0.1:18088")
+	swaggerURL := serviceURL("SWAGGER", "http://127.0.0.1:18089")
+	for _, baseURL := range []string{identityURL, tenantURL, authorizationURL, auditURL, schedulerURL, swaggerURL} {
 		waitReady(t, ctx, baseURL)
 	}
 	suffix := fmt.Sprint(time.Now().UnixNano())
@@ -78,6 +81,7 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 		t.Fatal("authorization decision denied the granted permission")
 	}
 	deadline := time.Now().Add(30 * time.Second)
+	auditProjected := false
 	for time.Now().Before(deadline) {
 		audits := post(t, ctx, auditURL+"/api/v1/audit/records/query", tokens.AccessToken, map[string]any{"tenant_id": tenantID, "page": 1, "page_size": 100})
 		var page struct {
@@ -85,11 +89,34 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 		}
 		decodeBody(t, audits, &page)
 		if page.Total > 0 {
-			return
+			auditProjected = true
+			break
 		}
 		time.Sleep(500 * time.Millisecond)
 	}
-	t.Fatal("domain events were not projected into audit-service within 30 seconds")
+	if !auditProjected {
+		t.Fatal("domain events were not projected into audit-service within 30 seconds")
+	}
+	createdJob := post(t, ctx, schedulerURL+"/api/v1/scheduler/jobs/create", tokens.AccessToken, map[string]any{
+		"name": "system-health-" + suffix, "cron_expression": "0 0 0 1 1 *", "timezone": "Asia/Shanghai",
+		"upstream": "audit", "full_method": "/grpc.health.v1.Health/Check", "request_json": `{"service":""}`,
+		"timeout_milliseconds": 5000, "enabled": false,
+	})
+	var job struct {
+		ID string `json:"id"`
+	}
+	decodeBody(t, createdJob, &job)
+	executionResponse := post(t, ctx, schedulerURL+"/api/v1/scheduler/jobs/trigger", tokens.AccessToken, map[string]any{"id": job.ID})
+	var execution struct {
+		Status       string `json:"status"`
+		ResponseJSON string `json:"response_json"`
+	}
+	decodeBody(t, executionResponse, &execution)
+	if execution.Status != "succeeded" || execution.ResponseJSON == "" {
+		t.Fatalf("scheduler dynamic gRPC invocation failed: %+v", execution)
+	}
+	getContains(t, ctx, swaggerURL+"/swagger/services", "scheduler-service")
+	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/identity-service")
 }
 
 func serviceURL(name, fallback string) string {
@@ -159,5 +186,48 @@ func decodeBody(t *testing.T, value response, target any) {
 	t.Helper()
 	if err := json.Unmarshal(value.Body, target); err != nil {
 		t.Fatalf("decode response body: %v", err)
+	}
+}
+
+func getContains(t *testing.T, ctx context.Context, target, fragment string) {
+	t.Helper()
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer result.Body.Close()
+	body, err := io.ReadAll(result.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.StatusCode != http.StatusOK || !bytes.Contains(body, []byte(fragment)) {
+		t.Fatalf("GET %s status=%d body=%s", target, result.StatusCode, body)
+	}
+}
+
+func getOpenAPISpec(t *testing.T, ctx context.Context, target string) {
+	t.Helper()
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer result.Body.Close()
+	var document struct {
+		Swagger string `json:"swagger"`
+		OpenAPI string `json:"openapi"`
+	}
+	if err := json.NewDecoder(result.Body).Decode(&document); err != nil {
+		t.Fatal(err)
+	}
+	if result.StatusCode != http.StatusOK || (document.Swagger == "" && document.OpenAPI == "") {
+		t.Fatalf("GET %s did not return an OpenAPI document: status=%d", target, result.StatusCode)
 	}
 }

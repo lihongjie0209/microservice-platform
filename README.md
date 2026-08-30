@@ -16,11 +16,11 @@ microservice-platform/
 
 ## 第一阶段目标
 
-先建设最小平台闭环：身份认证、权限、租户、审计、配置、通知和文件服务；业务服务通过统一契约和 SDK 接入。工作流、搜索、规则引擎等能力等到出现明确业务需求后再独立建设。
+当前最小平台闭环包含身份认证、权限、租户、审计、配置、通知、文件、动态 gRPC 调度和 Swagger 聚合服务；业务服务通过统一契约和 SDK 接入。下一项按已评审边界建设 application-service，工作流、搜索、规则引擎等能力等到出现明确业务需求后再独立建设。
 
 详细规划见 [平台基础服务规划](docs/platform-services.md)，已交付能力和审计证据见 [P0 完成矩阵](docs/completion-matrix.md)。
 
-本地默认使用一个 PostgreSQL `platform` 数据库，并以独立角色和 `identity`、`tenant`、`authorization` schema 隔离服务数据。开发基础设施见 [本地环境](environments/local/README.md)。
+本地默认使用一个 PostgreSQL `platform` 数据库，并以服务独立角色、schema 和迁移表隔离数据；无状态的 swagger-service 不申请数据库。开发基础设施见 [本地环境](environments/local/README.md)。
 
 ## 常用命令
 

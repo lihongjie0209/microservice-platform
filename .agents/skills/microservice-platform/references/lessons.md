@@ -214,3 +214,27 @@
 - Symptom: `swag` exited successfully while reducing a request containing `json.RawMessage` to an empty object definition.
 - Root cause: the generator could not infer the standard-library alias as an OpenAPI model but treated the parse error as a warning.
 - Prevention: annotate opaque JSON fields with `swaggertype:"object"`, inspect generator output, and retain generated-document consistency checks.
+
+## 2026-08-30: platform services generated from a standalone template must drop local token issuance
+
+- Symptom: a newly generated platform service compiled with the template's local HMAC issuer but could not authenticate Identity's EdDSA multi-audience tokens.
+- Root cause: the standalone template intentionally supports self-contained development, while platform services have a stricter single-issuer architecture.
+- Prevention: after generation, non-identity platform services replace local issuance at runtime with the shared JWKS verifier, add their audience to Identity, and test a real cross-service token before publication.
+
+## 2026-08-30: dynamic gRPC reflection requires stream authentication propagation
+
+- Symptom: unary business calls carried PSK/JWT metadata, but descriptor discovery failed authentication because Server Reflection is a bidirectional streaming RPC.
+- Root cause: the outbound client configured only unary metadata interceptors.
+- Prevention: authentication metadata is attached to unary and stream client calls; Reflection is exposed only on an internal protected endpoint and included explicitly in its auth policy.
+
+## 2026-08-30: build metadata must handle a repository without a first commit
+
+- Symptom: the first build of a generated service passed `HEAD unknown` as one linker value and failed before the initial commit existed.
+- Root cause: plain `git rev-parse HEAD` can print `HEAD` before returning failure, after which the shell fallback appends `unknown`.
+- Prevention: resolve build commits with `git rev-parse --verify HEAD` so an unborn repository produces exactly the fallback value.
+
+## 2026-08-30: Kubernetes discovery and document access are separate security decisions
+
+- Symptom: an annotated Service appeared in the Swagger catalog but its production document endpoint was disabled or blocked by cross-namespace NetworkPolicy.
+- Root cause: Service list/watch proves discoverability only; it does not grant workload network access or application authentication.
+- Prevention: enable the protected internal document endpoint, forward a valid multi-audience caller token, allow only swagger-service ingress on the document port, and test discovery plus document retrieval together.

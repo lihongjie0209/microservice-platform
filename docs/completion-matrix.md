@@ -13,6 +13,8 @@
 | config | 草稿、审批/拒绝、发布、回滚、解析 | 同等生命周期与查询契约 | 配置变更事件 + outbox | 环境/租户/服务作用域、审批分离、乐观锁 |
 | notification | 模板、发送、供应商回执、状态查询 | 同等模板/发送/回执契约 | 投递状态事件 + outbox | 幂等、重试/死信、频控、回执去重 |
 | file | 预签名上传/下载、分片上传、扫描、删除 | 同等文件和 multipart 契约 | 文件生命周期事件 + outbox | S3/MinIO、校验、重试删除、过期上传清理 |
+| scheduler | 任务 CRUD、手动触发、执行记录 | 同等任务管理与触发契约 | 复用平台事件总线基础设施 | 动态 Reflection 调用、集群锁、乐观锁、执行幂等与审计 |
+| swagger | 聚合服务目录、OpenAPI 文档和统一 Swagger UI | 不暴露业务 gRPC | 无状态，不接入事件总线 | 静态配置 + Kubernetes Service Informer 自动发现、TTL 缓存和 stale fallback |
 
 ## 共享资产与交付
 
@@ -27,8 +29,8 @@
 
 ```text
 make verify            PASS  # race、vet、Proto、Swagger、Helm、Compose
-make test-integration  PASS  # SDK + 七个服务的隔离 Testcontainers
-system-tests           PASS  # PSK -> JWT -> tenant -> authorization -> NATS -> audit
+make test-integration  PASS  # SDK + 九个服务的隔离测试
+system-tests           PASS  # PSK -> JWT -> tenant -> authorization -> NATS -> audit -> dynamic scheduler -> Swagger aggregation
 ```
 
 每个服务的单元/集成测试均可独立运行，不要求其他服务在线。多服务旅程只存在于平台级 `system-tests`。CI 会重新克隆各独立服务仓库后运行 Compose 和系统测试，防止本地 workspace 替换掩盖发布问题。
@@ -44,4 +46,4 @@ system-tests           PASS  # PSK -> JWT -> tenant -> authorization -> NATS -> 
 
 ## 非 P0 范围
 
-API Gateway、Temporal 工作流、跨域搜索、集中调度、外部 webhook、计量计费等仍按 `platform-services.md` 的 P1/P2 触发条件建设。它们需要真实业务边界和容量目标，不应为了“看起来完整”提前部署空服务。
+API Gateway、Temporal 工作流、跨域搜索、外部 webhook、计量计费等仍按 `platform-services.md` 的 P1/P2 触发条件建设。它们需要真实业务边界和容量目标，不应为了“看起来完整”提前部署空服务。
