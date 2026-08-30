@@ -274,3 +274,9 @@
 - Symptom: a migration Job looked ordered before Deployment but could fail on first install because its referenced ConfigMap or ExternalSecret target did not exist yet.
 - Root cause: Helm pre-install hooks run before ordinary resources in the same release, and creation of an ExternalSecret does not synchronously create its target Secret.
 - Prevention: default Kubernetes startup migration to an init container that runs after Pod configuration resolves and before the API container; retain a hook Job only when configuration and secrets are independently pre-provisioned.
+
+## 2026-08-30: a new durable consumer may replay matching stream history
+
+- Symptom: a dead-letter integration scenario consumed an earlier event before the event published specifically for that scenario.
+- Root cause: the JetStream consumer retained the default all-available delivery policy, so a newly created durable correctly started from matching stream history rather than only future messages.
+- Prevention: preserve replay-friendly production defaults; isolate independent tests with distinct subjects or explicitly configure a start policy only when that policy is part of the behavior under test.
