@@ -3,6 +3,18 @@ set -eu
 
 for service in services/*-service; do
 	name=$(basename "$service")
+	if find "$service/internal/principal" -type f -name '*.go' 2>/dev/null | grep -q .; then
+		echo "$service: service-local principal contexts are forbidden; use platform-go/principal" >&2
+		exit 1
+	fi
+	if ! grep -R -q 'microservice-platform-go/principal' "$service/internal" --include='*.go'; then
+		echo "$service: shared platform principal context is required" >&2
+		exit 1
+	fi
+	if [ "$name" != identity-service ] && ! grep -R -q 'microservice-platform-go/authn' "$service/internal" --include='*.go'; then
+		echo "$service: non-identity services must verify identity-service tokens through platform-go/authn" >&2
+		exit 1
+	fi
 	spec="$service/docs/swagger.json"
 	if [ ! -s "$spec" ] || ! grep -q '"post"[[:space:]]*:' "$spec"; then
 		echo "$service: generated OpenAPI POST operations are missing" >&2

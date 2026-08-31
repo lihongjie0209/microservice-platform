@@ -550,3 +550,9 @@
 - Symptom: an event-consumer service appeared to own an Outbox during a platform audit because an old migration still created an Outbox table, although no runtime code ever wrote or dispatched it.
 - Root cause: generated infrastructure survived after the service boundary changed, so schema-name scans produced a false ownership signal and left an unmaintained table in new installations.
 - Prevention: determine ownership from write paths and lifecycle wiring, not table names alone; remove unused generated tables with a reversible forward migration instead of adding retention workers for data the service does not own.
+
+## 2026-09-01: authenticated tenant scope must survive transport adaptation
+
+- Symptom: several older services successfully verified an Identity JWKS token but copied only its subject into a service-local principal, allowing request-body tenant IDs to replace the trusted token tenant.
+- Root cause: scaffold-era HTTP/gRPC adapters defined their own reduced authentication context instead of propagating the shared principal returned by `platform-go/authn`.
+- Prevention: all transports store `platform-go/principal.Principal` unchanged, PSK callers become explicit system principals, user-scoped application methods compare the requested tenant with the trusted claim, and CI rejects service-local principal packages or non-Identity token verification.
