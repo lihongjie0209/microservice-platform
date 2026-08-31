@@ -23,6 +23,7 @@
 | metering | 计量器管理、批量用量写入、调整和聚合查询 | 中央 Metering API，供内部采集与 Billing 使用 | 计量器变更、用量记录事件 + 事务 Outbox | 事件 ID 幂等、不可变事实、租户隔离、数据库端聚合分页、PG/Kingbase 时间分区 |
 | billing | 套餐、用量价格、订阅、账单、支付和退款 | 中央 Billing API，显式 tenant scope | 套餐/订阅/账单/支付/退款事件 + 事务 Outbox | 金额最小单位、乐观锁、幂等键、支付回调去重、下周期变更调度、Metering API 隔离 |
 | rule | 规则集、版本校验、发布、单次执行页面接口 | 中央 Rule API，支持单次/批量 Evaluate | 规则版本发布事件 + 事务 Outbox | CEL 有界执行、不可变版本、租户隔离、幂等版本创建、乐观发布 |
+| data-export | 异步任务创建、查询、分页、取消、重试、下载 | 中央 Export API；通用流式 Export Provider 协议 | 请求及成功/失败/取消/重试/过期事件 + Outbox | 数据库原子 claim、流式 S3/MinIO、限制与校验、到期清理、乐观锁 |
 
 ## 共享资产与交付
 
@@ -36,9 +37,9 @@
 ## 验证证据
 
 ```text
-make verify            PASS  # race、vet、Proto、Swagger、Helm、Compose
-make test-integration  PASS  # SDK + 各服务的隔离 Testcontainers 测试
-system-tests           PASS  # PSK -> JWT -> tenant -> authorization -> NATS -> audit -> scheduler -> registry -> dictionary -> workflow -> search -> metering -> Swagger
+make verify                    # 本机：race、vet、Proto、Swagger、Helm、Compose 配置校验
+make test-integration          # 本机：只编译 integration build tag，不启动容器
+GitHub platform-ci             # CI：各服务隔离 Testcontainers + 平台 system-tests
 ```
 
 每个服务的单元/集成测试均可独立运行，不要求其他服务在线。多服务旅程只存在于平台级 `system-tests`。CI 会重新克隆各独立服务仓库后运行 Compose 和系统测试，防止本地 workspace 替换掩盖发布问题。

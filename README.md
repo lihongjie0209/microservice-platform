@@ -32,19 +32,20 @@ make bootstrap
 make contracts
 make build
 make test
-make test-integration
+make test-integration       # 仅编译 integration build tag
+make ci-test-integration    # 仅 GitHub CI 执行 Testcontainers
 make lint
 make swagger-check
 make verify
 make infra-up
 make infra-down
 make dev-up
-make system-test
+make system-test            # 仅编译平台 system test；完整执行由 CI 的 ci-system-test 负责
 
 # 只操作一个服务
 make service-run SERVICE=tenant-service
 make service-test SERVICE=tenant-service
-make service-test-integration SERVICE=tenant-service
+make service-test-integration SERVICE=tenant-service  # 仅编译
 make service-migrate-up SERVICE=tenant-service
 ```
 

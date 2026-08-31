@@ -22,7 +22,7 @@ SERVICE_DIR = services/$(SERVICE)
 	service-test-integration service-lint service-fmt service-swagger-check service-migrate-up \
 	service-migrate-down service-dev-up service-dev-down service-dev-logs \
 	build test test-integration ci-test-integration lint swagger swagger-check verify \
-	delivery-check compose-check loop-failure-check infra-up infra-down infra-logs infra-status dev-up dev-down dev-logs system-test clean clean-tools
+	delivery-check compose-check loop-failure-check infra-up infra-down infra-logs infra-status dev-up dev-down dev-logs system-test ci-system-test clean clean-tools
 
 help:
 	@echo "Workspace commands:"
@@ -32,6 +32,7 @@ help:
 	@echo "  make build                  Build every service"
 	@echo "  make test                   Run SDK and service unit tests with race detection"
 	@echo "  make test-integration       Compile integration suites without running containers"
+	@echo "  make system-test            Compile platform system tests without starting Compose"
 	@echo "  make ci-test-integration    Run isolated Testcontainers suites (GitHub CI only)"
 	@echo "  make lint                   Run vet and configured service linters"
 	@echo "  make swagger                Regenerate service OpenAPI documents"
@@ -125,8 +126,11 @@ service-check:
 	@if [ -z "$(SERVICE)" ]; then echo "SERVICE is required; choose one of: $(SERVICES)" >&2; exit 2; fi
 	@case " $(SERVICES) " in *" $(SERVICE) "*) ;; *) echo "unknown SERVICE=$(SERVICE); choose one of: $(SERVICES)" >&2; exit 2;; esac
 
-service-run service-build service-docker-build service-test service-test-race service-test-integration service-lint service-fmt service-swagger-check service-migrate-up service-migrate-down service-dev-up service-dev-down service-dev-logs: service-check
+service-run service-build service-docker-build service-test service-test-race service-lint service-fmt service-swagger-check service-migrate-up service-migrate-down service-dev-up service-dev-down service-dev-logs: service-check
 	@target=$@; PATH="$(TOOLS_DIR):$$PATH" $(MAKE) -C $(SERVICE_DIR) $${target#service-}
+
+service-test-integration: service-check
+	@cd $(SERVICE_DIR) && go test -tags=integration -run '^$$' ./integration/...
 
 build: services-build
 
@@ -184,7 +188,10 @@ dev-down:
 dev-logs:
 	docker compose --profile platform -f environments/local/docker-compose.yml logs -f
 
-system-test: dev-up
+system-test:
+	cd system-tests && go test -tags=system -run '^$$' ./...
+
+ci-system-test: dev-up
 	cd system-tests && go test -tags=system -count=1 -timeout=5m ./...
 
 clean:

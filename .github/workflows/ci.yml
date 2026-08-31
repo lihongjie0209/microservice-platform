@@ -43,7 +43,7 @@ jobs:
       - name: Validate Compose
         run: make compose-check
       - name: Run platform journey
-        run: make system-test
+        run: make ci-system-test
       - name: Show service logs on failure
         if: failure()
         run: docker compose --profile platform -f environments/local/docker-compose.yml logs --no-color
