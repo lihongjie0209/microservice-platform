@@ -221,6 +221,15 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 - 任务请求与成功、失败、取消、重试、过期事件通过事务 Outbox 和 JetStream durable consumer 传递；数据库状态负责原子 claim，重投不会重复执行已结束任务
 - 任务取消/重试使用版本号乐观锁；运行中取消会在进度边界中止并删除不完整对象；到期结果由 Cron 分批删除对象并标记 `expired`
 
+### import-service
+
+- 聚合注册中心中的 Import Provider 能力，提供数据集分页搜索与列定义页面接口
+- 管理上传、异步校验、错误报告、人工确认、批量应用、取消、重试和任务查询
+- CSV、JSONL、XLSX 使用有界批次解析，规范化数据和错误报告限制临时文件大小并存入 S3/MinIO
+- 业务服务实现中央 `platform.import.v1.ImportProviderService`，导入服务不生成领域专用 Client，也不读取其他服务 Schema
+- 任务状态通过数据库原子 claim 与事务 Outbox 驱动 JetStream durable consumer，批次应用携带稳定幂等键
+- 结果到期由 Cron 清理对象并写入过期事件；所有用户变更使用审计主体和版本号乐观锁
+
 ### webhook-service
 
 - 外部订阅、签名、投递、重试和回放
@@ -231,7 +240,6 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 ## P2：规模化阶段
 
 - metadata-service：统一字典和可扩展元数据。
-- import-service：需要批量导入、校验报告和人工纠错流程时再按独立边界建设。
 
 这些服务必须由真实业务边界驱动，不建议在平台初期预建空壳。
 

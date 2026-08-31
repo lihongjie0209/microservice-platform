@@ -245,6 +245,7 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	getContains(t, ctx, swaggerURL+"/swagger/services", "billing-service")
 	getContains(t, ctx, swaggerURL+"/swagger/services", "rule-service")
 	getContains(t, ctx, swaggerURL+"/swagger/services", "data-export-service")
+	getContains(t, ctx, swaggerURL+"/swagger/services", "import-service")
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/identity-service")
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/dictionary-service")
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/workflow-service")
@@ -253,6 +254,7 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/billing-service")
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/rule-service")
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/data-export-service")
+	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/import-service")
 }
 
 func issueTenantToken(t *testing.T, ctx context.Context, target, token, userID, tenantID, membershipID string) string {

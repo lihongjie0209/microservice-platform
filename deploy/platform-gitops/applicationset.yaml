@@ -63,6 +63,7 @@ spec:
                 - {service: billing-service, schema: billing, database: "true", redis: "true", eventBus: "true", exposure: public}
                 - {service: rule-service, schema: rule_service, database: "true", redis: "true", eventBus: "true", exposure: public}
                 - {service: data-export-service, schema: data_export, database: "true", redis: "true", eventBus: "true", exposure: public}
+                - {service: import-service, schema: data_import, database: "true", redis: "true", eventBus: "true", exposure: public}
   template:
     metadata:
       name: '{{ .service }}-{{ .environment }}'

@@ -11,7 +11,7 @@ PROTOC_GEN_GO_VERSION ?= v1.36.12
 PROTOC_GEN_GO_GRPC_VERSION ?= v1.5.1
 GOLANGCI_LINT_VERSION ?= v2.13.1
 YQ_VERSION ?= v4.50.1
-SERVICES := identity-service tenant-service authorization-service audit-service config-service notification-service file-service scheduler-service swagger-service application-service dictionary-service service-registry-service webhook-service workflow-service search-service metering-service billing-service rule-service data-export-service
+SERVICES := identity-service tenant-service authorization-service audit-service config-service notification-service file-service scheduler-service swagger-service application-service dictionary-service service-registry-service webhook-service workflow-service search-service metering-service billing-service rule-service data-export-service import-service
 SERVICE ?=
 SERVICE_DIR = services/$(SERVICE)
 

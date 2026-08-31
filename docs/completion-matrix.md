@@ -24,6 +24,7 @@
 | billing | 套餐、用量价格、订阅、账单、支付和退款 | 中央 Billing API，显式 tenant scope | 套餐/订阅/账单/支付/退款事件 + 事务 Outbox | 金额最小单位、乐观锁、幂等键、支付回调去重、下周期变更调度、Metering API 隔离 |
 | rule | 规则集、版本校验、发布、单次执行页面接口 | 中央 Rule API，支持单次/批量 Evaluate | 规则版本发布事件 + 事务 Outbox | CEL 有界执行、不可变版本、租户隔离、幂等版本创建、乐观发布 |
 | data-export | 异步任务创建、查询、分页、取消、重试、下载 | 中央 Export API；通用流式 Export Provider 协议 | 请求及成功/失败/取消/重试/过期事件 + Outbox | 数据库原子 claim、流式 S3/MinIO、限制与校验、到期清理、乐观锁 |
+| import | Provider 数据集目录、上传、校验报告、确认、取消、重试和任务分页 | 中央 Import API；通用双向流 Import Provider 协议 | 请求、校验、应用、失败、取消、重试、过期事件 + Outbox | 注册中心能力发现、批量有界解析、S3/MinIO、原子 claim、人工确认、乐观锁 |
 
 ## 共享资产与交付
 
@@ -55,4 +56,4 @@ GitHub platform-ci             # CI：各服务隔离 Testcontainers + 平台 sy
 
 ## 尚未建设的增长能力
 
-计费、规则和数据导出服务已经按明确领域边界交付。数据导出采用通用 Provider 流协议、注册中心能力发现、S3 流式交付以及事务事件，不跨服务数据库；下一轮按 `platform-services.md` 的 P2 触发条件评估批量导入服务。
+计费、规则、数据导出和数据导入服务已经按明确领域边界交付。导入/导出均采用通用 Provider 协议、注册中心能力发现、对象存储以及事务事件，不跨服务数据库。尚未建设的增长能力继续由真实业务边界触发。
