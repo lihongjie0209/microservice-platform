@@ -443,6 +443,15 @@ services:
       APP_AUTH_AUDIENCE: billing-service
       APP_OUTBOUND_GRPC_AUTHORIZATION_TARGET: authorization-service:9090
       APP_OUTBOUND_GRPC_METERING_TARGET: metering-service:9090
+      APP_AUTH_PSK_ENABLED: "true"
+      APP_AUTH_PSK_KEY: registry-dev-psk-00000000000000000000
+      APP_AUTH_PSK_GRPC_METHODS: "[/platform.export.v1.ExportProviderService/*]"
+      APP_SERVICE_REGISTRY_ENABLED: "true"
+      APP_SERVICE_REGISTRY_TARGET: service-registry-service:9090
+      APP_SERVICE_REGISTRY_PSK: registry-dev-psk-00000000000000000000
+      APP_SERVICE_REGISTRY_INSTANCE_ID: billing-service-local-1
+      APP_SERVICE_REGISTRY_ENDPOINT: grpc://billing-service:9090
+      APP_SERVICE_REGISTRY_ALLOW_INSECURE: "true"
 
   rule-service:
     <<: *platform-service
