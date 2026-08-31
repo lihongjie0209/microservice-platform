@@ -412,3 +412,9 @@
 - Symptom: unit and vet passed after removing a private NATS adapter, but CI's `go mod tidy && git diff` failed because `nats.go` moved from direct to indirect through the shared event SDK.
 - Root cause: source deletion changed the module graph classification, and local verification omitted the repository's module-tidiness gate.
 - Prevention: run `go mod tidy` after adding or deleting imports/packages, review only `go.mod`/`go.sum` classification changes, and commit them with the source change before pushing.
+
+## 2026-08-31: SQL migration checks must parse statements, not lines
+
+- Symptom: an audit-field check reported a valid compact `CREATE TABLE` as missing every shared column because several columns appeared on one line.
+- Root cause: the checker assumed one column declaration per line; an earlier regular expression also stopped at parentheses inside SQL types or constraints.
+- Prevention: split migrations into complete semicolon-terminated statements, locate `CREATE TABLE` declarations independently of formatting, and match columns at statement start or comma boundaries; retain compact and multiline unit fixtures.
