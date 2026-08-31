@@ -61,6 +61,7 @@ spec:
                 - {service: search-service, schema: search, database: "true", redis: "true", eventBus: "true", exposure: public}
                 - {service: metering-service, schema: metering, database: "true", redis: "true", eventBus: "true", exposure: public}
                 - {service: billing-service, schema: billing, database: "true", redis: "true", eventBus: "true", exposure: public}
+                - {service: rule-service, schema: rule_service, database: "true", redis: "true", eventBus: "true", exposure: public}
   template:
     metadata:
       name: '{{ .service }}-{{ .environment }}'

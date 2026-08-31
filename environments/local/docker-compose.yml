@@ -444,6 +444,22 @@ services:
       APP_OUTBOUND_GRPC_AUTHORIZATION_TARGET: authorization-service:9090
       APP_OUTBOUND_GRPC_METERING_TARGET: metering-service:9090
 
+  rule-service:
+    <<: *platform-service
+    build: {context: ../../services/rule-service, args: {GOPROXY: "${GOPROXY:-https://goproxy.cn,direct}"}}
+    ports: ["18098:8080", "19098:9090"]
+    depends_on:
+      <<: *platform-dependencies
+      identity-service: {condition: service_healthy}
+    environment:
+      <<: *platform-env
+      APP_DATABASE_SCHEMA: rule_service
+      APP_DATABASE_DSN: postgres://rule_service:rule-dev@postgres:5432/platform?sslmode=disable&search_path=rule_service
+      APP_MIGRATION_DATABASE_URL: postgres://rule_service:rule-dev@postgres:5432/platform?sslmode=disable&search_path=rule_service
+      APP_MIGRATION_TABLE: rule_service_schema_migrations
+      APP_AUTH_JWKS_URL: http://identity-service:8080/.well-known/jwks.json
+      APP_AUTH_AUDIENCE: rule-service
+
   swagger-service:
     profiles: [platform]
     restart: unless-stopped
@@ -466,6 +482,7 @@ services:
       search-service: {condition: service_healthy}
       metering-service: {condition: service_healthy}
       billing-service: {condition: service_healthy}
+      rule-service: {condition: service_healthy}
     environment:
       APP_ENV: compose
       APP_HTTP_ADDRESS: 0.0.0.0:8080

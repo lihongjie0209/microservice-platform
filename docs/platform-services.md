@@ -204,6 +204,15 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 - 下周期换套餐及期末取消由服务内定时任务推进，Redis 分布式锁限制多副本并发
 - 领域事件使用公共 Envelope 和事务 Outbox 发布到 `PLATFORM_EVENTS`
 
+### rule-service
+
+- 管理租户级规则集、不可变规则版本、发布状态和历史版本
+- 使用 Google CEL 校验并有界执行有序规则，不允许任意脚本、文件或网络访问
+- 前端通过独立 POST+JSON DTO 管理、校验、发布和试算；内部服务通过中央 `platform.rule.v1.RuleService` 单次/批量 Evaluate
+- 调用方显式提供 facts，规则服务不查询其他服务 Schema；发布版本以校验后的 canonical JSON 和 SHA-256 checksum 固化
+- 版本号分配和持久幂等键在 rule-set 行锁内串行化，发布使用双版本乐观锁
+- 发布事件与状态在同一事务写入 Outbox，投递到 `PLATFORM_EVENTS`
+
 ### webhook-service
 
 - 外部订阅、签名、投递、重试和回放
@@ -214,7 +223,6 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 ## P2：规模化阶段
 
 - metadata-service：统一字典和可扩展元数据。
-- rule-service：业务规则版本、发布和执行。
 - data-export-service：大数据量异步导入导出。
 
 这些服务必须由真实业务边界驱动，不建议在平台初期预建空壳。

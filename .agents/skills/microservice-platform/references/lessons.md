@@ -173,6 +173,12 @@
 - Root cause: the template emitted a v2 configuration but pinned a v1 binary in CI and had no pinned local bootstrap target.
 - Prevention: pin the same v2 release in CI and the workspace Makefile, and run the template lint gate before generating services.
 
+## A repository move does not necessarily change its Go module path
+
+- Symptom: installing CEL from its new `cel-expr/cel-go` repository path failed because release `v0.30.0` still declares `github.com/google/cel-go` in `go.mod`.
+- Root cause: the source repository moved before the published Go module path changed, and repository URLs were treated as module identifiers.
+- Prevention: resolve dependencies from their declared `go.mod` path and verify a release with `go mod download`/`go list -m`; use `github.com/google/cel-go` until upstream publishes a module-path migration.
+
 ## Public module names must be resolved before rewriting imports
 
 - Symptom: the desired shared SDK repository name already belonged to an unrelated private project.
