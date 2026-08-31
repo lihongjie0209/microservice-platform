@@ -1,5 +1,17 @@
 # Reusable Lessons
 
+## 2026-09-01: frontend JSON summaries need transport-specific DTOs
+
+- Symptom: audit before/after JSON appeared as base64 strings in the frontend even though the stored payload was valid JSON.
+- Root cause: the HTTP response exposed the domain model's `[]byte`; Go JSON encoding correctly treats byte slices as base64 rather than embedded JSON.
+- Prevention: define explicit HTTP response DTOs, expose structured JSON as `json.RawMessage` with an OpenAPI object annotation, and assert the marshaled response shape in a unit test.
+
+## 2026-09-01: authenticated requests still require server-side tenant binding
+
+- Symptom: an authenticated audit caller could submit another `tenant_id` in a query body and read that tenant's records.
+- Root cause: an early local principal model retained only subject and authentication method, discarding the trusted tenant claim returned by the shared JWKS verifier.
+- Prevention: use the shared platform principal end to end, compare user-scoped requests with its trusted `tenant_id` in the application layer for every transport, and reserve tenant-independent access for explicitly authorized service/system principals.
+
 ## 2026-09-01: revoking refresh state does not invalidate a signed access token by itself
 
 - Symptom: an administrator revoked a user session, while the already issued JWT could still call Identity APIs until its expiration time.
