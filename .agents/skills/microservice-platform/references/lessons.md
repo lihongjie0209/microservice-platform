@@ -1,5 +1,11 @@
 # Reusable Lessons
 
+## 2026-08-31: GitHub CLI repository inference is ambiguous with multiple remotes
+
+- Symptom: `gh run list` reported no workflows for a repository whose pushed commit already had a successful CI run.
+- Root cause: the checkout had both `origin` and `upstream`, and GitHub CLI inferred the upstream repository instead of the push target.
+- Prevention: CI inspection commands always pass `--repo <owner/repository>` when a checkout has multiple GitHub remotes; verify the selected repository with `gh repo view <owner/repository>` before concluding Actions is absent.
+
 ## 2026-08-29: verify toolchain before generation
 
 - Symptom: `microgen` failed while generating three services because `buf` was absent.
