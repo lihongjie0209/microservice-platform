@@ -36,6 +36,7 @@
 - Updates and soft deletes use expected-version optimistic concurrency. Distributed locks are reserved for cross-resource/cross-system invariants and use the narrowest stable resource key.
 - PostgreSQL strings default to `TEXT`; bounded types are reserved for genuine domain constraints. Time instants use `TIMESTAMPTZ`, with database/connection presentation set to `Asia/Shanghai` (UTC+08:00).
 - High-growth tables have explicit partition, retention, and archive policies. Service migrations own declarative partitioning; deployment/DBA automation may use `pg_partman` without making it mandatory for service startup.
+- `docs/high-growth-data-policy.md` is the authoritative capacity inventory. A global uniqueness or foreign-key invariant takes precedence over premature time partitioning; services use bounded terminal-state cleanup until the identity contract can include a partition key.
 - Kubernetes service deployments run database migration in a Pod init container by default, so configuration/Secret resolution precedes migration and migration success precedes API startup. Concurrent replicas rely on the shared PostgreSQL advisory-lock migration guard. A hook Job is opt-in only when its ConfigMap and Secret are provisioned independently before the release.
 
 ## Shared code

@@ -18,7 +18,7 @@ microservice-platform/
 
 当前平台闭环包含身份认证、权限、租户、应用与菜单、统一数据字典、服务注册发现、审计、配置、通知、文件、动态 gRPC 调度、Webhook 外部投递、持久工作流、全局搜索和 Swagger 聚合服务；业务服务通过统一契约、Provider SDK 和 JetStream 事件接入。Web UI 保持最低优先级，平台优先交付稳定的分页、搜索、树形和管理 API。
 
-详细规划见 [平台基础服务规划](docs/platform-services.md)，已交付能力和审计证据见 [P0 完成矩阵](docs/completion-matrix.md)。
+详细规划见 [平台基础服务规划](docs/platform-services.md)，已交付能力和审计证据见 [P0 完成矩阵](docs/completion-matrix.md)。高增长表的分区、保留、归档和删除责任见 [数据容量治理](docs/high-growth-data-policy.md)。
 
 本地默认使用一个 PostgreSQL `platform` 数据库，并以服务独立角色、schema 和迁移表隔离数据；无状态的 swagger-service 不申请数据库。开发基础设施见 [本地环境](environments/local/README.md)。
 
