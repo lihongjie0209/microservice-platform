@@ -19,7 +19,7 @@ not a second OLTP table shared by services.
 | every event producer | published Outbox records | Service-specific, normally at least JetStream replay window; owning service | Event archive / object storage | Use existing native partitions where present; delete only `published_at IS NOT NULL` | Shared SDK primitive implemented; per-service scheduling in progress |
 | webhook-service | durable Inbox records | 30 days after completion; webhook worker | Not normally archived | Retention cleanup preserves failed/processing duplicate-delivery boundaries | Implemented |
 | search-service | durable Inbox records | 14 days after completion; search projection worker | Not normally archived | Retention cleanup preserves failed/processing duplicate-delivery boundaries | Implemented |
-| billing-service | provider callbacks and payment attempts | Finance/compliance policy; billing operations | Immutable finance archive | Partition only after legal hold and idempotency keys are time-bucketed | Pending policy implementation |
+| billing-service | `payment_provider_events`, `payment_attempts`, and `refunds` | Minimum 7 years after the related invoice closes; billing operations; legal hold always wins | Immutable finance archive with a verified archive receipt | Deferred: provider/idempotency keys are globally authoritative and are not time-bucketed | Enforced conservatively: runtime deletion is disabled until archive receipts and legal-hold checks are implemented |
 | data-export-service | `export_jobs` metadata | 365 days after the result is marked `expired`; export worker | CDC / controlled export before deletion | Use state expiry first; partition based on measured history volume | Implemented: bounded version-conditional cleanup with supporting index |
 | import-service | `import_jobs` metadata | 365 days after result objects are removed and the job is marked `expired`; import worker | CDC / controlled export before deletion | Use state expiry first; partition based on measured history volume | Implemented: bounded version-conditional cleanup with supporting index |
 
@@ -38,3 +38,14 @@ not a second OLTP table shared by services.
    not a cross-schema reaper.
 5. `pg_partman` is deployment/DBA automation only. Runtime migrations remain
    valid on a plain PostgreSQL/Kingbase installation.
+
+## Finance retention gate
+
+Billing payment attempts, provider-event deduplication records, and refunds are
+retained in the owning OLTP schema for at least seven years. The billing runtime
+must not expose or schedule physical deletion until an archive receipt and a
+legal-hold decision are stored and checked atomically for the affected window.
+Until that workflow exists, growing storage is an explicit operational cost and
+manual SQL deletion is outside the supported runbook. This preserves provider
+callback deduplication and payment/refund evidence instead of treating an
+unimplemented archive as permission to delete.
