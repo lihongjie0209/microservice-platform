@@ -454,3 +454,9 @@
 - Symptom: a Node unit test for JSON-object validation failed while loading an unrelated Vue layout because the helper lived in an API module that imports the browser request and routing graph.
 - Root cause: deterministic transformation logic and side-effectful transport wiring shared one module boundary.
 - Prevention: keep parsers, tree builders, validators, and state reducers in side-effect-free modules; let API adapters import those helpers, and point Node unit tests only at the pure module.
+
+## 2026-08-31: frontend contract artifacts travel with backend API changes
+
+- Symptom: frontend typecheck, lint, tests, and production build passed, but CI failed the contract drift gate after an authorization endpoint was added.
+- Root cause: the backend Swagger changed after the frontend feature commit, while the committed OpenAPI snapshot and generated declaration were not refreshed in the same delivery chain.
+- Prevention: after every consumed backend HTTP contract change reaches its source branch, run frontend `generate:contracts` and `check:contracts` before committing the dependent page; treat the generated snapshot as part of the feature, not as a later documentation task.
