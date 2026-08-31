@@ -311,6 +311,12 @@
 - Root cause: the target test path was created without first reading the repository's tracked file at that exact path.
 - Prevention: resolve and inspect existing test files before `Add File`; extend the existing suite or choose a new descriptive filename, then review the complete diff to ensure prior assertions remain present.
 
+## 2026-09-01: JSON transport migrations need an explicit compatibility window
+
+- Symptom: changing a request field from a JSON-encoded string to structured JSON made existing E2E clients receive an invalid-request response even though the new DTO compiled and unit tests passed.
+- Root cause: `json.RawMessage` also accepts a JSON string token, which was forwarded with its quotes to domain validation instead of being normalized from the legacy representation.
+- Prevention: when replacing JSON-in-string fields, accept and unwrap the legacy string form at the transport boundary, always emit structured JSON, add a focused legacy-request unit regression, and remove compatibility only after clients have migrated.
+
 ## 2026-08-30: logical provider registration needs replica coordination
 
 - Symptom: multiple replicas of one provider would repeatedly rotate the same service-level lease token, causing otherwise healthy replicas to invalidate each other's heartbeats.
