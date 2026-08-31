@@ -55,6 +55,7 @@
 - Domain code remains local even if structs look similar across services.
 - Shared authentication/authorization interceptors, principal/audit context, and Redis distributed locking live in `platform-go`; services provide policy/verifier implementations and domain authorization requirements.
 - The shared gRPC Authorizer maps a user to its tenant membership (never its global user ID), maps service/system callers to service-account subjects, forwards the caller credential, applies a bounded deadline, and preserves the distinction between an explicit denial and an unavailable decision service. Production services fail closed when authorization is enabled but its named upstream is absent.
+- Machine lifecycle RPCs already protected by PSK/mTLS and capability tokens (for example provider registration, heartbeat, and unregister) do not also require a tenant-membership authorization decision. Human/admin management and read operations remain centrally authorized; coverage tests explicitly enumerate both protected and intentionally excluded methods.
 - Global error codes and transport mappings live in `platform-go`; domain services may define messages/details but must not allocate duplicate numeric codes locally.
 - Reflection-based unary JSON-to-Protobuf invocation shared by scheduler and workflow orchestration lives in `platform-go/dynamicgrpc`. Services provide only an allow-listed, authenticated connection registry; runtime targets and credentials never come from persisted task rows.
 
