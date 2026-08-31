@@ -406,3 +406,9 @@
 - Symptom: services ran through the shared event SDK but still compiled and tested an unreferenced private NATS/Envelope implementation inherited from the scaffold.
 - Root cause: runtime wiring was migrated without deleting the old package, so normal Go tests stayed green while two implementations remained available to future code.
 - Prevention: remove superseded packages with their modules and tests, forbid direct NATS imports below services, and make the workspace event-reliability check require shared SDK, transactional Outbox/Inbox, and replay boundaries.
+
+## 2026-08-31: deleting a direct adapter changes module classification
+
+- Symptom: unit and vet passed after removing a private NATS adapter, but CI's `go mod tidy && git diff` failed because `nats.go` moved from direct to indirect through the shared event SDK.
+- Root cause: source deletion changed the module graph classification, and local verification omitted the repository's module-tidiness gate.
+- Prevention: run `go mod tidy` after adding or deleting imports/packages, review only `go.mod`/`go.sum` classification changes, and commit them with the source change before pushing.
