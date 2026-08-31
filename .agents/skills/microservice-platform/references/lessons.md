@@ -1,5 +1,11 @@
 # Reusable Lessons
 
+## 2026-08-31: environment list syntax must be normalized before wildcard validation
+
+- Symptom: a Compose service repeatedly failed startup because a PSK gRPC method was validated as `"[/package.Service/*"` instead of `"/package.Service/*"`.
+- Root cause: Viper split a bracketed environment list on commas but preserved the leading and trailing brackets as data.
+- Prevention: configuration decoding normalizes both comma-separated and bracketed string lists before validation; retain a unit regression using the exact Compose representation and verify a freshly generated service inherits it.
+
 ## 2026-08-31: GitHub CLI repository inference is ambiguous with multiple remotes
 
 - Symptom: `gh run list` reported no workflows for a repository whose pushed commit already had a successful CI run.
