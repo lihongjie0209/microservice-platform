@@ -400,3 +400,9 @@
 - Symptom: a Provider stream returned `Unavailable` after receiving or committing a batch, and the import job became terminal even though discovery had another healthy instance.
 - Root cause: unary retry interceptors do not retry bidirectional stream creation or `Send`/`Recv`, while reopening a stream without replaying the unanswered batch silently loses work.
 - Prevention: bound stream-open and current-batch retries with context-aware backoff, report the failed instance to discovery, recreate the stream, and replay Apply with the exact same durable idempotency key; unit-test validation replay and the commit-then-fail Apply case, then exercise it in the isolated Testcontainers suite.
+
+## 2026-08-31: unused infrastructure packages are still maintenance forks
+
+- Symptom: services ran through the shared event SDK but still compiled and tested an unreferenced private NATS/Envelope implementation inherited from the scaffold.
+- Root cause: runtime wiring was migrated without deleting the old package, so normal Go tests stayed green while two implementations remained available to future code.
+- Prevention: remove superseded packages with their modules and tests, forbid direct NATS imports below services, and make the workspace event-reliability check require shared SDK, transactional Outbox/Inbox, and replay boundaries.
