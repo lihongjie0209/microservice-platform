@@ -299,6 +299,12 @@
 - Root cause: PostgreSQL-oriented type guidance was copied verbatim into a MySQL physical schema.
 - Prevention: keep PostgreSQL/Kingbase domain strings as `TEXT`; in MySQL use bounded `VARCHAR` for identifiers, foreign keys, unique keys, and indexed values, leave payload/display text as `TEXT` without defaults, and run both database migration suites before publishing.
 
+## 2026-09-01: branch-based raw contract URLs can remain stale after a push
+
+- Symptom: the frontend contract generator completed successfully immediately after a backend Swagger push but omitted the newly added path.
+- Root cause: the raw GitHub branch URL returned a cached prior representation even though the branch ref already pointed at the new commit; a timestamp query alone did not reliably select the new representation.
+- Prevention: when consuming a contract immediately after publication, pin the source URL to the verified backend commit revision (or an immutable release artifact), regenerate, and assert the expected path exists before implementing the client.
+
 ## 2026-08-30: logical provider registration needs replica coordination
 
 - Symptom: multiple replicas of one provider would repeatedly rotate the same service-level lease token, causing otherwise healthy replicas to invalidate each other's heartbeats.
