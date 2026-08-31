@@ -520,3 +520,9 @@
 - Symptom: re-adding a removed role permission or group member failed on the unique pair constraint even though the UI correctly presented the resource as unassigned.
 - Root cause: removal retained the junction row for audit and optimistic locking, while the add path always attempted a new insert.
 - Prevention: for audited unique junctions, add means “ensure active”: return an already active row idempotently, reactivate a removed row with its current version, and insert only when the pair does not exist; cover both active and removed cases with deterministic unit tests.
+
+## 2026-09-01: Swagger response DTOs must not embed cross-package domain models
+
+- Symptom: Go tests passed after introducing a structured REST view, but `swag init` failed with `cannot find type definition` for an embedded domain entity imported under an alias.
+- Root cause: the transport DTO reused a database/domain struct through cross-package embedding; the Swagger parser could not resolve it, and the design also leaked persistence fields into the public contract implicitly.
+- Prevention: define explicit service-local HTTP response DTO fields and map domain entities deliberately; run Swagger generation before the full test gate and retain structured-JSON transport regressions.
