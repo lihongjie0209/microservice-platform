@@ -418,3 +418,9 @@
 - Symptom: an audit-field check reported a valid compact `CREATE TABLE` as missing every shared column because several columns appeared on one line.
 - Root cause: the checker assumed one column declaration per line; an earlier regular expression also stopped at parentheses inside SQL types or constraints.
 - Prevention: split migrations into complete semicolon-terminated statements, locate `CREATE TABLE` declarations independently of formatting, and match columns at statement start or comma boundaries; retain compact and multiline unit fixtures.
+
+## 2026-08-31: applied migrations are immutable release history
+
+- Symptom: a new retention index was initially added to a service's baseline migration, which would work only for fresh databases and leave already migrated environments without the index.
+- Root cause: a schema optimization was treated as scaffold state instead of an incremental production change.
+- Prevention: never edit an applied migration; add a numbered forward migration and matching rollback for every supported dialect, then validate both fresh migration order and upgrade paths in CI.

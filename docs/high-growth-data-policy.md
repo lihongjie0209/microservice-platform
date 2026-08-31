@@ -20,7 +20,8 @@ not a second OLTP table shared by services.
 | webhook-service | durable Inbox records | 30 days after completion; webhook worker | Not normally archived | Retention cleanup preserves failed/processing duplicate-delivery boundaries | Implemented |
 | search-service | durable Inbox records | 14 days after completion; search projection worker | Not normally archived | Retention cleanup preserves failed/processing duplicate-delivery boundaries | Implemented |
 | billing-service | provider callbacks and payment attempts | Finance/compliance policy; billing operations | Immutable finance archive | Partition only after legal hold and idempotency keys are time-bucketed | Pending policy implementation |
-| data-export-service / import-service | job metadata | Result-object lifecycle plus operational history; owning service | Existing result object storage / CDC | Use state expiry first; partition based on measured history volume | Pending metadata retention implementation |
+| data-export-service | `export_jobs` metadata | 365 days after the result is marked `expired`; export worker | CDC / controlled export before deletion | Use state expiry first; partition based on measured history volume | Implemented: bounded version-conditional cleanup with supporting index |
+| import-service | job metadata | Result-object lifecycle plus operational history; owning service | Existing result object storage / CDC | Use state expiry first; partition based on measured history volume | Pending metadata retention implementation |
 
 ## Partition and deletion rules
 
