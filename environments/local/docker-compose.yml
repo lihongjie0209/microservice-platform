@@ -155,6 +155,7 @@ services:
     environment:
       MINIO_ROOT_USER: platform-minio
       MINIO_ROOT_PASSWORD: platform-minio-dev
+      MINIO_API_CORS_ALLOW_ORIGIN: "*"
     ports:
       - "9000:9000"
       - "9001:9001"
