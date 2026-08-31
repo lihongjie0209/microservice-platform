@@ -169,7 +169,7 @@ infra-status:
 	docker compose -f environments/local/docker-compose.yml ps
 
 dev-up:
-	docker compose --profile platform -f environments/local/docker-compose.yml up --build -d --wait
+	COMPOSE_PARALLEL_LIMIT=$${COMPOSE_PARALLEL_LIMIT:-3} docker compose --profile platform -f environments/local/docker-compose.yml up --build -d --wait
 
 dev-down:
 	docker compose --profile platform -f environments/local/docker-compose.yml down --remove-orphans

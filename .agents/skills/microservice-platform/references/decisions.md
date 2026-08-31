@@ -51,3 +51,4 @@
 - Infrastructure and service-owned adapters use Testcontainers integration tests with the `integration` build tag.
 - A service test suite never requires another service. Outbound service clients use in-process fakes/bufconn/contract stubs; multi-service journeys live in a separate platform `system-tests` project.
 - Bugs found manually or in integration tests are reproduced in a unit test first whenever the root cause can be isolated.
+- Developer workstations run unit, race, vet, lint, generation, and configuration checks only. Testcontainers integration and platform system journeys run in GitHub CI; pushes do not block ongoing development, and completed CI is checked opportunistically at safe task boundaries.

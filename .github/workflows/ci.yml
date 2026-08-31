@@ -16,6 +16,10 @@ jobs:
   compose-and-system-test:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      # Building every Go service at once exhausts hosted-runner memory and can
+      # leave compiler containers stalled until the runner is terminated.
+      COMPOSE_PARALLEL_LIMIT: '3'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
