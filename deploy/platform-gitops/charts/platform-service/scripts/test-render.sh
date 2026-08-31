@@ -50,7 +50,24 @@ printf '%s\n' "$identity_output" | grep -q '"identity-service.dev.aaa.com"'
 printf '%s\n' "$identity_output" | grep -q 'kubernetes.io/metadata.name: ingress-apisix-development'
 printf '%s\n' "$identity_output" | grep -q 'platform.swagger/enabled: "true"'
 printf '%s\n' "$identity_output" | grep -q 'APP_EVENT_BUS_STREAM_NAME: "PLATFORM_EVENTS"'
+printf '%s\n' "$identity_output" | grep -q 'APP_HTTP_CORS_ENABLED: "true"'
+printf '%s\n' "$identity_output" | grep -q 'APP_HTTP_CORS_ALLOWED_ORIGINS: "\[https://console.dev.aaa.com\]"'
 printf '%s\n' "$identity_output" | grep -q 'mountPath: /app/logs'
+
+production_output=$(helm template identity-service "$test_chart" \
+  --namespace platform-production \
+  --set name=identity-service \
+  --set namespace=platform-production \
+  --set environment=production \
+  --set image.repository=ghcr.io/lihongjie0209/identity-service \
+  --set image.tag=v0.1.0 \
+  --set database.schema=identity \
+  --set database.migrationTable=identity_schema_migrations \
+  --set externalSecret.key=platform/production/identity-service \
+  --set gateway.enabled=true \
+  --set gateway.baseDomain=aaa.com \
+  --set gateway.production=true)
+printf '%s\n' "$production_output" | grep -q 'APP_HTTP_CORS_ALLOWED_ORIGINS: "\[https://console.aaa.com\]"'
 
 registry_output=$(helm template service-registry-service "$test_chart" \
   --namespace platform-development \
