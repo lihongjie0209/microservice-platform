@@ -305,6 +305,12 @@
 - Root cause: the raw GitHub branch URL returned a cached prior representation even though the branch ref already pointed at the new commit; a timestamp query alone did not reliably select the new representation.
 - Prevention: when consuming a contract immediately after publication, pin the source URL to the verified backend commit revision (or an immutable release artifact), regenerate, and assert the expected path exists before implementing the client.
 
+## 2026-09-01: adding a regression test must preserve the existing test file
+
+- Symptom: a new transport regression test replaced an existing global-error-code regression in the same `_test.go` path.
+- Root cause: the target test path was created without first reading the repository's tracked file at that exact path.
+- Prevention: resolve and inspect existing test files before `Add File`; extend the existing suite or choose a new descriptive filename, then review the complete diff to ensure prior assertions remain present.
+
 ## 2026-08-30: logical provider registration needs replica coordination
 
 - Symptom: multiple replicas of one provider would repeatedly rotate the same service-level lease token, causing otherwise healthy replicas to invalidate each other's heartbeats.
