@@ -32,6 +32,7 @@
 - The console obtains navigation from the active tenant's application grants and published application menus. Backend menu component strings are data only and are never dynamically imported; every concrete frontend page must be registered in a local allowlist.
 - Console service addresses are public runtime configuration injected into `platform-config.js`. Development uses a checked-in local default; container startup renders the file from `PLATFORM_*_URL` values, and production configuration requires HTTPS.
 - Swagger 2 documents remain service owned. The console converts their pinned published sources to OpenAPI 3 and generated TypeScript declarations; CI regenerates and compares them so documentation/model drift is visible in review.
+- The post-login home is a tenant-aware application launcher. It restores only active session-scoped tenant/application choices, lists grants from application-service, and enters a valid published default page; server-side services remain authoritative for every permission decision.
 
 ## Data
 

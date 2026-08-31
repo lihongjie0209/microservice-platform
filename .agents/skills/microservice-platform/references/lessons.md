@@ -430,3 +430,9 @@
 - Symptom: a new retention index was initially added to a service's baseline migration, which would work only for fresh databases and leave already migrated environments without the index.
 - Root cause: a schema optimization was treated as scaffold state instead of an incremental production change.
 - Prevention: never edit an applied migration; add a numbered forward migration and matching rollback for every supported dialect, then validate both fresh migration order and upgrade paths in CI.
+
+## 2026-08-31: container workflows must name non-root Dockerfiles
+
+- Symptom: frontend verification passed, but the container CI job failed immediately with `open Dockerfile: no such file or directory`.
+- Root cause: the repository keeps its image definition at `docker/Dockerfile`, while the build action defaulted to `./Dockerfile`.
+- Prevention: set the build action's `file` input explicitly whenever the Dockerfile is not at the build-context root, and retain the image build as a separate CI gate.
