@@ -333,7 +333,7 @@
 
 - Symptom: transactional Outbox publishers repeatedly received `nats: no response from stream` after another service started.
 - Root cause: every service idempotently reconciled the shared `PLATFORM_EVENTS` stream, but a generated default still used `service.>` and replaced the authoritative `platform.>` subject set.
-- Prevention: every participant in the shared stream configures the identical `platform.>` subject; keep that value in the generator and verify a multi-service restart against a persistent JetStream volume.
+- Prevention: every participant in the shared stream configures the identical `PLATFORM_EVENTS` / `platform.>` pair in both file and code defaults; keep it in the generator, enforce a workspace static invariant, and verify a multi-service restart against a persistent JetStream volume.
 
 ## 2026-08-31: inbound authentication metadata is not outbound metadata
 
