@@ -138,7 +138,7 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 		t.Fatalf("dynamic organization dictionary resolve mismatch: %+v", resolved)
 	}
 	applicationResponse := post(t, ctx, applicationURL+"/api/v1/applications/create", tokens.AccessToken, map[string]any{
-		"code": "system_" + suffix, "name": "System Application", "default_route": "/home", "metadata_json": `{}`,
+		"code": "system_" + suffix, "name": "System Application", "default_route": "/home", "metadata_json": map[string]any{},
 	})
 	var application struct {
 		ID      string `json:"id"`
@@ -153,7 +153,7 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 		"application_id": application.ID, "application_version": application.Version, "comment": "system test",
 	})
 	post(t, ctx, applicationURL+"/api/v1/applications/tenant-grants/grant", tokens.AccessToken, map[string]any{
-		"tenant_id": tenantID, "application_id": application.ID, "source": "system-test", "entitlements_json": `{}`,
+		"tenant_id": tenantID, "application_id": application.ID, "source": "system-test", "entitlements_json": map[string]any{},
 	})
 	waitSearchDocument(t, ctx, searchURL, tokens.AccessToken, tenantID, application.ID, "System Application")
 	checkResponse := post(t, ctx, applicationURL+"/api/v1/applications/tenant-grants/batch-check", tokens.AccessToken, map[string]any{
@@ -181,7 +181,7 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	decodeBody(t, definitionResponse, &definition)
 	post(t, ctx, workflowURL+"/api/v1/workflow/definitions/publish", tokens.AccessToken, map[string]any{"id": definition.ID, "tenant_id": tenantID, "expected_version": definition.Version})
 	instanceResponse := post(t, ctx, workflowURL+"/api/v1/workflow/instances/start", tokens.AccessToken, map[string]any{
-		"tenant_id": tenantID, "definition_key": definition.Key, "business_key": "system-" + suffix, "title": "System workflow", "variables_json": `{}`, "idempotency_key": "system-" + suffix,
+		"tenant_id": tenantID, "definition_key": definition.Key, "business_key": "system-" + suffix, "title": "System workflow", "variables_json": map[string]any{}, "idempotency_key": "system-" + suffix,
 	})
 	var instance struct {
 		ID string `json:"id"`
