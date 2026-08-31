@@ -460,3 +460,9 @@
 - Symptom: frontend typecheck, lint, tests, and production build passed, but CI failed the contract drift gate after an authorization endpoint was added.
 - Root cause: the backend Swagger changed after the frontend feature commit, while the committed OpenAPI snapshot and generated declaration were not refreshed in the same delivery chain.
 - Prevention: after every consumed backend HTTP contract change reaches its source branch, run frontend `generate:contracts` and `check:contracts` before committing the dependent page; treat the generated snapshot as part of the feature, not as a later documentation task.
+
+## 2026-08-31: foreign keys do not enforce tenant ownership
+
+- Symptom: membership create/update could reference an organization unit owned by another tenant because the database only verified that the organization ID existed.
+- Root cause: referential integrity was mistaken for the domain invariant that both resources must share a tenant and that the referenced organization must be active.
+- Prevention: before persisting any tenant-scoped cross-resource reference, load it through the owning repository and validate tenant and lifecycle state in the application layer; retain a unit regression using a valid foreign ID from a different tenant.
