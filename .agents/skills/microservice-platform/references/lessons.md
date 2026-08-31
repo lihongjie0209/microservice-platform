@@ -574,3 +574,9 @@
 - Symptom: unit, race, vet, and build checks passed, but CI lint rejected an unchecked `fmt.Fprintln` used to print a Cobra execution error to stderr.
 - Root cause: diagnostic output was treated as consequence-free even though the project enables `errcheck` for all writer calls.
 - Prevention: route CLI output through injected writers, explicitly handle or intentionally discard both write results, and run the repository's pinned golangci-lint version before pushing CLI changes.
+
+## 2026-09-01: HTTP PSK authentication must preserve the caller credential
+
+- Symptom: a PSK-protected machine endpoint produced a valid service-account principal locally, but its subsequent centralized authorization check had no credential to authenticate to authorization-service.
+- Root cause: the HTTP PSK branch stored only the principal, while the Bearer branch also attached the original `Authorization` value for downstream forwarding; gRPC hid the gap because incoming metadata is forwarded automatically.
+- Prevention: every authenticated HTTP branch attaches both the shared principal and the original caller credential with `authz.WithCallerCredential`; cover PSK-protected authorization paths when rolling shared authorization into a service.
