@@ -532,3 +532,9 @@
 - Symptom: development configuration and generated contracts supported new application modules, but the production container rendered empty URLs because its environment-variable template still listed only the earliest services.
 - Root cause: the service registry type, local config, container defaults, `envsubst` allowlist, and runtime template were maintained independently without a parity gate.
 - Prevention: update all runtime-config surfaces whenever a service is registered, and keep a CI check that verifies every platform service URL variable has a default, is allowlisted for substitution, and appears in the rendered template.
+
+## 2026-09-01: Outbox retention must follow the replay contract
+
+- Symptom: transactional Outbox dispatch was reliable, but successfully published rows accumulated forever and some services lacked an index usable by bounded cleanup.
+- Root cause: the shared cleanup primitive existed without service lifecycle wiring, retention validation, or an upgrade migration in each owning schema.
+- Prevention: every event producer schedules the shared bounded cleaner, validates that published retention is not shorter than the JetStream replay window, deletes only rows with `published_at IS NOT NULL`, and adds a forward/rollback index migration for `(published_at,id)` in every supported dialect.
