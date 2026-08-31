@@ -11,7 +11,7 @@ BEGIN
         'audit_service', 'config_service', 'notification_service', 'file_service',
         'scheduler_service', 'application_service', 'dictionary_service',
         'webhook_service', 'workflow_service', 'search_service', 'metering_service',
-        'billing_service', 'rule_service'
+        'billing_service', 'rule_service', 'data_export_service'
     ] LOOP
         IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = role_name) THEN
             EXECUTE format('CREATE ROLE %I LOGIN', role_name);
@@ -36,8 +36,9 @@ ALTER ROLE search_service LOGIN PASSWORD 'search-dev';
 ALTER ROLE metering_service LOGIN PASSWORD 'metering-dev';
 ALTER ROLE billing_service LOGIN PASSWORD 'billing-dev';
 ALTER ROLE rule_service LOGIN PASSWORD 'rule-dev';
+ALTER ROLE data_export_service LOGIN PASSWORD 'data-export-dev';
 
-GRANT CONNECT ON DATABASE platform TO identity_service, tenant_service, authorization_service, audit_service, config_service, notification_service, file_service, scheduler_service, application_service, dictionary_service, webhook_service, workflow_service, search_service, metering_service, billing_service, rule_service;
+GRANT CONNECT ON DATABASE platform TO identity_service, tenant_service, authorization_service, audit_service, config_service, notification_service, file_service, scheduler_service, application_service, dictionary_service, webhook_service, workflow_service, search_service, metering_service, billing_service, rule_service, data_export_service;
 
 CREATE SCHEMA IF NOT EXISTS "identity" AUTHORIZATION identity_service;
 CREATE SCHEMA IF NOT EXISTS "tenant" AUTHORIZATION tenant_service;
@@ -55,6 +56,7 @@ CREATE SCHEMA IF NOT EXISTS "search" AUTHORIZATION search_service;
 CREATE SCHEMA IF NOT EXISTS "metering" AUTHORIZATION metering_service;
 CREATE SCHEMA IF NOT EXISTS "billing" AUTHORIZATION billing_service;
 CREATE SCHEMA IF NOT EXISTS "rule_service" AUTHORIZATION rule_service;
+CREATE SCHEMA IF NOT EXISTS "data_export" AUTHORIZATION data_export_service;
 
 ALTER SCHEMA "identity" OWNER TO identity_service;
 ALTER SCHEMA "tenant" OWNER TO tenant_service;
@@ -72,8 +74,9 @@ ALTER SCHEMA "search" OWNER TO search_service;
 ALTER SCHEMA "metering" OWNER TO metering_service;
 ALTER SCHEMA "billing" OWNER TO billing_service;
 ALTER SCHEMA "rule_service" OWNER TO rule_service;
+ALTER SCHEMA "data_export" OWNER TO data_export_service;
 
-REVOKE ALL ON SCHEMA "identity", "tenant", "authorization", "audit", "config", "notification", "file", "scheduler", "application", "dictionary", "webhook", "workflow", "search", "metering", "billing", "rule_service" FROM PUBLIC;
+REVOKE ALL ON SCHEMA "identity", "tenant", "authorization", "audit", "config", "notification", "file", "scheduler", "application", "dictionary", "webhook", "workflow", "search", "metering", "billing", "rule_service", "data_export" FROM PUBLIC;
 GRANT USAGE, CREATE ON SCHEMA "identity" TO identity_service;
 GRANT USAGE, CREATE ON SCHEMA "tenant" TO tenant_service;
 GRANT USAGE, CREATE ON SCHEMA "authorization" TO authorization_service;
@@ -90,6 +93,7 @@ GRANT USAGE, CREATE ON SCHEMA "search" TO search_service;
 GRANT USAGE, CREATE ON SCHEMA "metering" TO metering_service;
 GRANT USAGE, CREATE ON SCHEMA "billing" TO billing_service;
 GRANT USAGE, CREATE ON SCHEMA "rule_service" TO rule_service;
+GRANT USAGE, CREATE ON SCHEMA "data_export" TO data_export_service;
 
 ALTER ROLE identity_service IN DATABASE platform SET search_path = "identity";
 ALTER ROLE tenant_service IN DATABASE platform SET search_path = "tenant";
@@ -107,3 +111,4 @@ ALTER ROLE search_service IN DATABASE platform SET search_path = "search";
 ALTER ROLE metering_service IN DATABASE platform SET search_path = "metering";
 ALTER ROLE billing_service IN DATABASE platform SET search_path = "billing";
 ALTER ROLE rule_service IN DATABASE platform SET search_path = "rule_service";
+ALTER ROLE data_export_service IN DATABASE platform SET search_path = "data_export";

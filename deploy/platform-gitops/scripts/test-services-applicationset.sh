@@ -15,7 +15,7 @@ environment_count=$("$yq_binary" -r '.spec.generators[0].matrix.generators[0].li
 
 [ "$repository" = "https://github.com/lihongjie0209/microservice-platform.git" ]
 [ "$chart_path" = "deploy/platform-gitops/charts/platform-service" ]
-[ "$service_count" -eq 18 ]
+[ "$service_count" -eq 19 ]
 [ "$environment_count" -eq 3 ]
 
 webhook_schema=$("$yq_binary" -r '.spec.generators[0].matrix.generators[1].list.elements[] | select(.service == "webhook-service") | .schema' "$applicationset")
@@ -30,6 +30,8 @@ billing_schema=$("$yq_binary" -r '.spec.generators[0].matrix.generators[1].list.
 [ "$billing_schema" = "billing" ]
 rule_schema=$("$yq_binary" -r '.spec.generators[0].matrix.generators[1].list.elements[] | select(.service == "rule-service") | .schema' "$applicationset")
 [ "$rule_schema" = "rule_service" ]
+export_schema=$("$yq_binary" -r '.spec.generators[0].matrix.generators[1].list.elements[] | select(.service == "data-export-service") | .schema' "$applicationset")
+[ "$export_schema" = "data_export" ]
 
 if grep -q 'github.com/lihongjie0209/platform-gitops' "$applicationset"; then
   echo "service ApplicationSet still references the removed repository" >&2

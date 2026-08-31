@@ -213,6 +213,14 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 - 版本号分配和持久幂等键在 rule-set 行锁内串行化，发布使用双版本乐观锁
 - 发布事件与状态在同一事务写入 Outbox，投递到 `PLATFORM_EVENTS`
 
+### data-export-service
+
+- 管理租户异步导出任务，提供创建、查询、分页、取消、重试和短时下载 URL 的前端 POST+JSON 接口
+- 业务服务实现中央 `platform.export.v1.ExportProviderService` 流式协议；导出服务通过注册中心的 `platform.export.provider` 能力发现来源，不生成领域专用 client，也不查询其他服务 Schema
+- CSV、JSONL、XLSX 均以批次流式编码并直接 multipart 上传 S3/MinIO，限制最大行数、字节数和执行时间，记录 SHA-256
+- 任务请求与状态事件通过事务 Outbox 和 JetStream durable consumer 传递；数据库状态负责原子 claim，重投不会重复执行已结束任务
+- 任务取消/重试使用版本号乐观锁，上传或持久化失败会清理不完整对象，结果按配置到期
+
 ### webhook-service
 
 - 外部订阅、签名、投递、重试和回放
@@ -223,7 +231,7 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 ## P2：规模化阶段
 
 - metadata-service：统一字典和可扩展元数据。
-- data-export-service：大数据量异步导入导出。
+- import-service：需要批量导入、校验报告和人工纠错流程时再按独立边界建设。
 
 这些服务必须由真实业务边界驱动，不建议在平台初期预建空壳。
 

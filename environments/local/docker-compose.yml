@@ -170,7 +170,7 @@ services:
       minio: {condition: service_healthy}
     entrypoint: [/bin/sh, -c]
     command:
-      - mc alias set local http://minio:9000 platform-minio platform-minio-dev && mc mb --ignore-existing local/platform-files
+      - mc alias set local http://minio:9000 platform-minio platform-minio-dev && mc mb --ignore-existing local/platform-files local/platform-exports
 
   identity-service:
     <<: *platform-service
@@ -460,6 +460,36 @@ services:
       APP_AUTH_JWKS_URL: http://identity-service:8080/.well-known/jwks.json
       APP_AUTH_AUDIENCE: rule-service
 
+  data-export-service:
+    <<: *platform-service
+    build: {context: ../../services/data-export-service, args: {GOPROXY: "${GOPROXY:-https://goproxy.cn,direct}"}}
+    ports: ["18099:8080", "19099:9090"]
+    depends_on:
+      <<: *platform-dependencies
+      identity-service: {condition: service_healthy}
+      service-registry-service: {condition: service_healthy}
+      minio-init: {condition: service_completed_successfully}
+    environment:
+      <<: *platform-env
+      APP_DATABASE_SCHEMA: data_export
+      APP_DATABASE_DSN: postgres://data_export_service:data-export-dev@postgres:5432/platform?sslmode=disable&search_path=data_export
+      APP_MIGRATION_DATABASE_URL: postgres://data_export_service:data-export-dev@postgres:5432/platform?sslmode=disable&search_path=data_export
+      APP_MIGRATION_TABLE: data_export_schema_migrations
+      APP_AUTH_JWKS_URL: http://identity-service:8080/.well-known/jwks.json
+      APP_AUTH_AUDIENCE: data-export-service
+      APP_OBJECT_STORAGE_ENABLED: "true"
+      APP_OBJECT_STORAGE_ENDPOINT: minio:9000
+      APP_OBJECT_STORAGE_ACCESS_KEY: platform-minio
+      APP_OBJECT_STORAGE_SECRET_KEY: platform-minio-dev
+      APP_OBJECT_STORAGE_BUCKET: platform-exports
+      APP_SERVICE_REGISTRY_ENABLED: "true"
+      APP_SERVICE_REGISTRY_TARGET: service-registry-service:9090
+      APP_SERVICE_REGISTRY_PSK: registry-dev-psk-00000000000000000000
+      APP_SERVICE_REGISTRY_ALLOW_INSECURE: "true"
+      APP_PROVIDER_CLIENT_PSK: registry-dev-psk-00000000000000000000
+      APP_PROVIDER_CLIENT_ALLOWED_DNS_SUFFIXES: "[-service]"
+      APP_PROVIDER_CLIENT_ALLOW_INSECURE: "true"
+
   swagger-service:
     profiles: [platform]
     restart: unless-stopped
@@ -483,6 +513,7 @@ services:
       metering-service: {condition: service_healthy}
       billing-service: {condition: service_healthy}
       rule-service: {condition: service_healthy}
+      data-export-service: {condition: service_healthy}
     environment:
       APP_ENV: compose
       APP_HTTP_ADDRESS: 0.0.0.0:8080

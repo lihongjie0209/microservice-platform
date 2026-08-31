@@ -11,17 +11,17 @@ PROTOC_GEN_GO_VERSION ?= v1.36.12
 PROTOC_GEN_GO_GRPC_VERSION ?= v1.5.1
 GOLANGCI_LINT_VERSION ?= v2.13.1
 YQ_VERSION ?= v4.50.1
-SERVICES := identity-service tenant-service authorization-service audit-service config-service notification-service file-service scheduler-service swagger-service application-service dictionary-service service-registry-service webhook-service workflow-service search-service metering-service
+SERVICES := identity-service tenant-service authorization-service audit-service config-service notification-service file-service scheduler-service swagger-service application-service dictionary-service service-registry-service webhook-service workflow-service search-service metering-service billing-service rule-service data-export-service
 SERVICE ?=
 SERVICE_DIR = services/$(SERVICE)
 
 .DEFAULT_GOAL := help
 .PHONY: help bootstrap fmt contracts contracts-check sdk-test sdk-integration \
-	services-build services-test services-vet services-lint services-swagger services-swagger-check services-integration \
+	services-build services-test services-vet services-lint services-swagger services-swagger-check services-integration services-integration-compile \
 	service-check service-run service-build service-docker-build service-test service-test-race \
 	service-test-integration service-lint service-fmt service-swagger-check service-migrate-up \
 	service-migrate-down service-dev-up service-dev-down service-dev-logs \
-	build test test-integration lint swagger swagger-check verify \
+	build test test-integration ci-test-integration lint swagger swagger-check verify \
 	delivery-check compose-check loop-failure-check infra-up infra-down infra-logs infra-status dev-up dev-down dev-logs system-test clean clean-tools
 
 help:
@@ -31,7 +31,8 @@ help:
 	@echo "  make contracts              Format, lint and generate shared Proto SDK"
 	@echo "  make build                  Build every service"
 	@echo "  make test                   Run SDK and service unit tests with race detection"
-	@echo "  make test-integration       Run isolated Testcontainers suites"
+	@echo "  make test-integration       Compile integration suites without running containers"
+	@echo "  make ci-test-integration    Run isolated Testcontainers suites (GitHub CI only)"
 	@echo "  make lint                   Run vet and configured service linters"
 	@echo "  make swagger                Regenerate service OpenAPI documents"
 	@echo "  make swagger-check          Regenerate and verify service OpenAPI documents"
@@ -117,6 +118,9 @@ services-swagger:
 services-integration:
 	@set -e; for service in $(SERVICES); do $(MAKE) -C services/$$service test-integration || exit $$?; done
 
+services-integration-compile:
+	@set -e; for service in $(SERVICES); do (cd services/$$service && go test -tags=integration -run '^$$' ./integration/...) || exit $$?; done
+
 service-check:
 	@if [ -z "$(SERVICE)" ]; then echo "SERVICE is required; choose one of: $(SERVICES)" >&2; exit 2; fi
 	@case " $(SERVICES) " in *" $(SERVICE) "*) ;; *) echo "unknown SERVICE=$(SERVICE); choose one of: $(SERVICES)" >&2; exit 2;; esac
@@ -128,7 +132,10 @@ build: services-build
 
 test: sdk-test services-test
 
-test-integration: sdk-integration services-integration
+test-integration: services-integration-compile
+	@cd libraries/platform-go && go test -tags=integration -run '^$$' ./...
+
+ci-test-integration: sdk-integration services-integration
 
 lint: services-vet services-lint
 

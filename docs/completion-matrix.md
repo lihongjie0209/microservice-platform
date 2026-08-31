@@ -54,4 +54,4 @@ system-tests           PASS  # PSK -> JWT -> tenant -> authorization -> NATS -> 
 
 ## 尚未建设的增长能力
 
-数据导出仍按 `platform-services.md` 的 P2 触发条件建设。计费和规则服务已经按明确领域边界交付；数据导出需要继续明确容量、文件格式与保留目标，不能只部署空壳。
+计费、规则和数据导出服务已经按明确领域边界交付。数据导出采用通用 Provider 流协议、注册中心能力发现、S3 流式交付以及事务事件，不跨服务数据库；下一轮按 `platform-services.md` 的 P2 触发条件评估批量导入服务。

@@ -42,7 +42,8 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	meteringURL := serviceURL("METERING", "http://127.0.0.1:18096")
 	billingURL := serviceURL("BILLING", "http://127.0.0.1:18097")
 	ruleURL := serviceURL("RULE", "http://127.0.0.1:18098")
-	for _, baseURL := range []string{identityURL, tenantURL, authorizationURL, auditURL, schedulerURL, swaggerURL, applicationURL, dictionaryURL, workflowURL, searchURL, meteringURL, billingURL, ruleURL} {
+	exportURL := serviceURL("DATA_EXPORT", "http://127.0.0.1:18099")
+	for _, baseURL := range []string{identityURL, tenantURL, authorizationURL, auditURL, schedulerURL, swaggerURL, applicationURL, dictionaryURL, workflowURL, searchURL, meteringURL, billingURL, ruleURL, exportURL} {
 		waitReady(t, ctx, baseURL)
 	}
 	suffix := fmt.Sprint(time.Now().UnixNano())
@@ -243,6 +244,7 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	getContains(t, ctx, swaggerURL+"/swagger/services", "metering-service")
 	getContains(t, ctx, swaggerURL+"/swagger/services", "billing-service")
 	getContains(t, ctx, swaggerURL+"/swagger/services", "rule-service")
+	getContains(t, ctx, swaggerURL+"/swagger/services", "data-export-service")
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/identity-service")
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/dictionary-service")
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/workflow-service")
@@ -250,6 +252,7 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/metering-service")
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/billing-service")
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/rule-service")
+	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/data-export-service")
 }
 
 func issueTenantToken(t *testing.T, ctx context.Context, target, token, userID, tenantID, membershipID string) string {

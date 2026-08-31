@@ -370,3 +370,15 @@
 - Symptom: billing's isolated Testcontainers suite authenticated a PSK caller, then attempted an authorization-protected plan mutation and failed because authorization-service was intentionally not running.
 - Root cause: the test conflated inbound authentication, local domain transport, and an external authorization decision, violating service-owned test isolation.
 - Prevention: use an unprotected domain read to prove JWT/PSK reaches the service, cover the shared authorization resolver with an in-process unit fake, and test authorization-service's decision engine in its own repository; only platform system journeys run both services.
+
+## 2026-08-31: long-running JetStream handlers need matching acknowledgement deadlines
+
+- Symptom: an asynchronous export worker was designed for multi-hour jobs while the shared consumer default canceled every handler after 25 seconds.
+- Root cause: the business job timeout and JetStream `AckWait`/handler timeout were configured independently.
+- Prevention: set the consumer handler timeout from the bounded job timeout and require `AckWait` to be strictly longer; retain database state as the authoritative claim so redelivery remains safe.
+
+## 2026-08-31: central-contract services must remove scaffold-local Proto CI
+
+- Symptom: a generated service still ran Buf breaking/generation checks for deleted Hello Proto files after adopting the versioned central contract module.
+- Root cause: domain conversion removed runtime imports but not generated artifacts, Make targets, CI steps, integration tests, and documentation as one unit.
+- Prevention: when a service adopts `platform-protos`, delete local example Proto/generated files and their Buf CI, pin the released central module, and compile the integration-tag suite before the first commit.
