@@ -21,6 +21,7 @@
 | workflow | 定义、发布、实例和我的任务页面接口 | 完整工作流管理契约；服务任务动态调用内部 gRPC | 状态/任务事件 + Outbox；命令 durable consumer 驱动 Temporal | 发布快照、实例/任务乐观锁、审计主体、Temporal 幂等与补偿 |
 | search | 查询、建议、单文档页面接口，支持分页/过滤/排序/高亮/聚合 | 中央 Search API；受保护批量重建接口 | durable 消费搜索文档事件 + 事务 Inbox | OpenSearch 外部版本、服务端可见性令牌、JWT 租户隔离、授权角色解析 |
 | metering | 计量器管理、批量用量写入、调整和聚合查询 | 中央 Metering API，供内部采集与 Billing 使用 | 计量器变更、用量记录事件 + 事务 Outbox | 事件 ID 幂等、不可变事实、租户隔离、数据库端聚合分页、PG/Kingbase 时间分区 |
+| billing | 套餐、用量价格、订阅、账单、支付和退款 | 中央 Billing API，显式 tenant scope | 套餐/订阅/账单/支付/退款事件 + 事务 Outbox | 金额最小单位、乐观锁、幂等键、支付回调去重、下周期变更调度、Metering API 隔离 |
 
 ## 共享资产与交付
 

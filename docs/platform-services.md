@@ -196,6 +196,14 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 - 查询在 PostgreSQL/MySQL 内完成 JSON 维度过滤、聚合和结果分页；PostgreSQL/Kingbase 明细表按时间分区
 - JWT Principal 强制租户范围，服务账号用于内部采集；Billing 通过 API/事件读取，不跨 schema 查询
 
+### billing-service
+
+- 管理套餐、用量价格、租户订阅、账单、支付尝试和退款，提供独立 POST+JSON 页面接口与中央 `platform.billing.v1` gRPC 契约
+- 通过 metering-service API 获取用量，通过 authorization-service 统一决策套餐管理权限，绝不跨 schema 查询
+- 发票、支付、提供商回调和退款具有持久化幂等边界；所有更新使用版本号乐观锁
+- 下周期换套餐及期末取消由服务内定时任务推进，Redis 分布式锁限制多副本并发
+- 领域事件使用公共 Envelope 和事务 Outbox 发布到 `PLATFORM_EVENTS`
+
 ### webhook-service
 
 - 外部订阅、签名、投递、重试和回放
@@ -205,7 +213,6 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 
 ## P2：规模化阶段
 
-- billing-service：套餐、账单、支付和对账。
 - metadata-service：统一字典和可扩展元数据。
 - rule-service：业务规则版本、发布和执行。
 - data-export-service：大数据量异步导入导出。
