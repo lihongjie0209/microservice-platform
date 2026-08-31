@@ -1,5 +1,11 @@
 # Reusable Lessons
 
+## 2026-09-01: revoking refresh state does not invalidate a signed access token by itself
+
+- Symptom: an administrator revoked a user session, while the already issued JWT could still call Identity APIs until its expiration time.
+- Root cause: bearer authentication verified only the token signature and claims; it never checked the session ID against revocation state.
+- Prevention: Identity validates user-token session state after signature verification and tests a revoked-token request end to end. Other services use short-lived access tokens plus a bounded session-status cache invalidated by Identity revocation events; service-account tokens bypass user-session lookup.
+
 ## 2026-08-31: environment list syntax must be normalized before wildcard validation
 
 - Symptom: a Compose service repeatedly failed startup because a PSK gRPC method was validated as `"[/package.Service/*"` instead of `"/package.Service/*"`.
