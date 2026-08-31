@@ -358,3 +358,9 @@
 - Symptom: platform CI was terminated while many Go image builds remained in compiler steps, despite no functional assertion failure.
 - Root cause: Compose started every independent service image build concurrently, exhausting the hosted runner's memory/CPU and leaving builds stalled until runner shutdown.
 - Prevention: `COMPOSE_PARALLEL_LIMIT` alone is insufficient when Compose submits one BuildKit graph. Install a CI BuildKit builder with a small worker `max-parallelism`, retain the Compose limit for engine operations, and keep failure log collection enabled.
+
+## 2026-08-31: service integration tests must stop at outbound policy boundaries
+
+- Symptom: billing's isolated Testcontainers suite authenticated a PSK caller, then attempted an authorization-protected plan mutation and failed because authorization-service was intentionally not running.
+- Root cause: the test conflated inbound authentication, local domain transport, and an external authorization decision, violating service-owned test isolation.
+- Prevention: use an unprotected domain read to prove JWT/PSK reaches the service, cover the shared authorization resolver with an in-process unit fake, and test authorization-service's decision engine in its own repository; only platform system journeys run both services.
