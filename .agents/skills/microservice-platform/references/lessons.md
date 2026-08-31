@@ -448,3 +448,9 @@
 - Symptom: frontend contract drift checks alternated between stale and current Swagger content immediately after a service push, and transient GitHub Raw TLS resets failed otherwise valid checks.
 - Root cause: mutable branch URLs were cached between generation runs and the downloader attempted each source only once.
 - Prevention: add a per-generation cache-busting query parameter and bounded exponential retries to remote contract downloads; keep the generated artifacts committed so review still shows the exact contract change.
+
+## 2026-08-31: frontend pure logic must not import browser request graphs
+
+- Symptom: a Node unit test for JSON-object validation failed while loading an unrelated Vue layout because the helper lived in an API module that imports the browser request and routing graph.
+- Root cause: deterministic transformation logic and side-effectful transport wiring shared one module boundary.
+- Prevention: keep parsers, tree builders, validators, and state reducers in side-effect-free modules; let API adapters import those helpers, and point Node unit tests only at the pure module.
