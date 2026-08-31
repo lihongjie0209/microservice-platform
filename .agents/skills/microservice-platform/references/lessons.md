@@ -544,3 +544,9 @@
 - Symptom: PostgreSQL migration and all Go checks passed, but the MySQL Testcontainers migration failed with error 1170 when indexing an Outbox `TEXT` identifier.
 - Root cause: a cross-dialect `(published_at,id)` index assumed that MySQL could index `TEXT` like PostgreSQL; the table primary key already used an explicit 191-character prefix.
 - Prevention: inspect the actual MySQL column type before copying index DDL; use `id(191)` for legacy `TEXT` identifiers, retain the full column for `VARCHAR`, and add a static migration regression alongside Testcontainers coverage.
+
+## 2026-09-01: schema artifacts must reflect actual runtime ownership
+
+- Symptom: an event-consumer service appeared to own an Outbox during a platform audit because an old migration still created an Outbox table, although no runtime code ever wrote or dispatched it.
+- Root cause: generated infrastructure survived after the service boundary changed, so schema-name scans produced a false ownership signal and left an unmaintained table in new installations.
+- Prevention: determine ownership from write paths and lifecycle wiring, not table names alone; remove unused generated tables with a reversible forward migration instead of adding retention workers for data the service does not own.
