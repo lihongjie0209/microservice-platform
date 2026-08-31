@@ -166,6 +166,7 @@ delivery-check: $(YQ)
 compose-check:
 	docker compose -f environments/local/docker-compose.yml config -q
 	docker compose --profile platform -f environments/local/docker-compose.yml config -q
+	sh scripts/test-compose-invariants.sh
 
 infra-up:
 	docker compose -f environments/local/docker-compose.yml up -d --wait

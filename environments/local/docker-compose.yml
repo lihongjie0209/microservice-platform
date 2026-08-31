@@ -42,7 +42,10 @@ services:
       - postgres-data:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: [CMD-SHELL, pg_isready -U platform_admin -d platform]
+      # The image starts a Unix-socket-only temporary server while running
+      # docker-entrypoint-initdb.d. Requiring TCP prevents dependent bootstrap
+      # jobs from observing that temporary server as ready.
+      test: [CMD-SHELL, pg_isready -h 127.0.0.1 -U platform_admin -d platform]
       interval: 3s
       timeout: 3s
       retries: 30

@@ -388,3 +388,9 @@
 - Symptom: unary gRPC calls authenticated successfully, while server-streaming and bidirectional provider calls arrived without JWT/PSK, request ID, or idempotency metadata.
 - Root cause: `grpc.WithChainUnaryInterceptor` is never invoked for streaming RPCs.
 - Prevention: install a stream client interceptor that shares the same metadata builder as the unary interceptor; retain a deterministic unit test for authentication and correlation metadata in the template and every streaming consumer.
+
+## 2026-08-31: PostgreSQL initialization readiness must require TCP
+
+- Symptom: Compose marked PostgreSQL healthy, then the reconciliation bootstrap immediately failed with a TCP connection refusal.
+- Root cause: the image's temporary initialization server accepts Unix-socket probes before the final TCP listener starts, and `pg_isready` without `-h` probes that socket.
+- Prevention: health checks used by dependent containers explicitly probe `127.0.0.1`; retain a static Compose invariant check because schema validation alone cannot detect this startup race.
