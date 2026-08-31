@@ -22,7 +22,7 @@ SERVICE_DIR = services/$(SERVICE)
 	service-test-integration service-lint service-fmt service-swagger-check service-migrate-up \
 	service-migrate-down service-dev-up service-dev-down service-dev-logs \
 	build test test-integration ci-test-integration lint swagger swagger-check verify \
-	delivery-check compose-check loop-failure-check integration-policy-check event-bus-check infra-up infra-down infra-logs infra-status dev-up dev-down dev-logs system-test ci-system-test clean clean-tools
+	delivery-check compose-check loop-failure-check integration-policy-check event-bus-check contract-ownership-check infra-up infra-down infra-logs infra-status dev-up dev-down dev-logs system-test ci-system-test clean clean-tools
 
 help:
 	@echo "Workspace commands:"
@@ -152,7 +152,7 @@ swagger: services-swagger
 
 swagger-check: services-swagger-check
 
-verify: contracts-check sdk-test services-test services-vet services-swagger-check delivery-check compose-check loop-failure-check integration-policy-check event-bus-check
+verify: contracts-check sdk-test services-test services-vet services-swagger-check delivery-check compose-check loop-failure-check integration-policy-check event-bus-check contract-ownership-check
 
 loop-failure-check:
 	@if $(MAKE) --no-print-directory services-build SERVICES="missing-service workflow-service" >/dev/null 2>&1; then \
@@ -164,6 +164,9 @@ integration-policy-check:
 
 event-bus-check:
 	sh scripts/test-event-bus-invariants.sh
+
+contract-ownership-check:
+	sh scripts/test-contract-ownership.sh
 
 delivery-check: $(YQ)
 	helm lint deploy/platform-helm

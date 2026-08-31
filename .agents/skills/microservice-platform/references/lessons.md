@@ -357,7 +357,7 @@
 
 - Symptom: a newly generated domain service compiled while still documenting and testing local Hello/User Proto, principal, event-bus, and configuration examples alongside the real central contract and shared SDK.
 - Root cause: scaffold generation establishes a runnable baseline, but successful compilation does not prove template-only artifacts were replaced or that the service follows platform ownership boundaries.
-- Prevention: before the first service commit, audit imports, routes, generated code, docs, CI targets, configuration sections, and tests for template domain names; remove local Proto and cross-cutting duplicates, depend on the pinned central contract/shared SDK, then run vet, lint, Swagger drift, and service integration tests.
+- Prevention: before the first service commit, audit imports, routes, generated code, docs, CI targets, configuration sections, and tests for template domain names; remove local Proto and cross-cutting duplicates, depend on the pinned central contract/shared SDK, enforce the workspace contract-ownership check, then run vet, lint, Swagger drift, and service integration tests.
 
 ## 2026-08-31: bound Compose build concurrency on hosted runners
 
