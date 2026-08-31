@@ -538,3 +538,9 @@
 - Symptom: transactional Outbox dispatch was reliable, but successfully published rows accumulated forever and some services lacked an index usable by bounded cleanup.
 - Root cause: the shared cleanup primitive existed without service lifecycle wiring, retention validation, or an upgrade migration in each owning schema.
 - Prevention: every event producer schedules the shared bounded cleaner, validates that published retention is not shorter than the JetStream replay window, deletes only rows with `published_at IS NOT NULL`, and adds a forward/rollback index migration for `(published_at,id)` in every supported dialect.
+
+## 2026-09-01: MySQL TEXT identifiers need prefix indexes
+
+- Symptom: PostgreSQL migration and all Go checks passed, but the MySQL Testcontainers migration failed with error 1170 when indexing an Outbox `TEXT` identifier.
+- Root cause: a cross-dialect `(published_at,id)` index assumed that MySQL could index `TEXT` like PostgreSQL; the table primary key already used an explicit 191-character prefix.
+- Prevention: inspect the actual MySQL column type before copying index DDL; use `id(191)` for legacy `TEXT` identifiers, retain the full column for `VARCHAR`, and add a static migration regression alongside Testcontainers coverage.
