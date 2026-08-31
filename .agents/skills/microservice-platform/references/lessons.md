@@ -394,3 +394,9 @@
 - Symptom: Compose marked PostgreSQL healthy, then the reconciliation bootstrap immediately failed with a TCP connection refusal.
 - Root cause: the image's temporary initialization server accepts Unix-socket probes before the final TCP listener starts, and `pg_isready` without `-h` probes that socket.
 - Prevention: health checks used by dependent containers explicitly probe `127.0.0.1`; retain a static Compose invariant check because schema validation alone cannot detect this startup race.
+
+## 2026-08-31: streaming retries must replay the current idempotent batch
+
+- Symptom: a Provider stream returned `Unavailable` after receiving or committing a batch, and the import job became terminal even though discovery had another healthy instance.
+- Root cause: unary retry interceptors do not retry bidirectional stream creation or `Send`/`Recv`, while reopening a stream without replaying the unanswered batch silently loses work.
+- Prevention: bound stream-open and current-batch retries with context-aware backoff, report the failed instance to discovery, recreate the stream, and replay Apply with the exact same durable idempotency key; unit-test validation replay and the commit-then-fail Apply case, then exercise it in the isolated Testcontainers suite.
