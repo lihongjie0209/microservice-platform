@@ -436,3 +436,15 @@
 - Symptom: frontend verification passed, but the container CI job failed immediately with `open Dockerfile: no such file or directory`.
 - Root cause: the repository keeps its image definition at `docker/Dockerfile`, while the build action defaulted to `./Dockerfile`.
 - Prevention: set the build action's `file` input explicitly whenever the Dockerfile is not at the build-context root, and retain the image build as a separate CI gate.
+
+## 2026-08-31: frontend pages must not compensate for missing owner APIs
+
+- Symptom: the planned platform user-management page had no pageable Identity query contract, tempting the console to omit the page or derive users indirectly from another service.
+- Root cause: page planning was initially constrained to currently generated frontend contracts instead of checking whether the owning service exposed the required platform capability.
+- Prevention: when an application page needs an owned resource, add the capability to the owning service's repository/application/HTTP layers and central gRPC contract, cover it with service-local unit tests, publish the contract version, and regenerate the frontend OpenAPI model; never read another service's schema or invent client-only data joins.
+
+## 2026-08-31: remote contract generation needs cache bypass and bounded retry
+
+- Symptom: frontend contract drift checks alternated between stale and current Swagger content immediately after a service push, and transient GitHub Raw TLS resets failed otherwise valid checks.
+- Root cause: mutable branch URLs were cached between generation runs and the downloader attempted each source only once.
+- Prevention: add a per-generation cache-busting query parameter and bounded exponential retries to remote contract downloads; keep the generated artifacts committed so review still shows the exact contract change.
