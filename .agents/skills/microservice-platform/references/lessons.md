@@ -466,3 +466,9 @@
 - Symptom: membership create/update could reference an organization unit owned by another tenant because the database only verified that the organization ID existed.
 - Root cause: referential integrity was mistaken for the domain invariant that both resources must share a tenant and that the referenced organization must be active.
 - Prevention: before persisting any tenant-scoped cross-resource reference, load it through the owning repository and validate tenant and lifecycle state in the application layer; retain a unit regression using a valid foreign ID from a different tenant.
+
+## 2026-08-31: soft-removed unique assignments must be reactivated
+
+- Symptom: re-adding a removed role permission or group member failed on the unique pair constraint even though the UI correctly presented the resource as unassigned.
+- Root cause: removal retained the junction row for audit and optimistic locking, while the add path always attempted a new insert.
+- Prevention: for audited unique junctions, add means “ensure active”: return an already active row idempotently, reactivate a removed row with its current version, and insert only when the pair does not exist; cover both active and removed cases with deterministic unit tests.
