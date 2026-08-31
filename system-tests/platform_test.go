@@ -5,6 +5,8 @@ package systemtests
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -43,7 +45,8 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	billingURL := serviceURL("BILLING", "http://127.0.0.1:18097")
 	ruleURL := serviceURL("RULE", "http://127.0.0.1:18098")
 	exportURL := serviceURL("DATA_EXPORT", "http://127.0.0.1:18099")
-	for _, baseURL := range []string{identityURL, tenantURL, authorizationURL, auditURL, schedulerURL, swaggerURL, applicationURL, dictionaryURL, workflowURL, searchURL, meteringURL, billingURL, ruleURL, exportURL} {
+	importURL := serviceURL("IMPORT", "http://127.0.0.1:18100")
+	for _, baseURL := range []string{identityURL, tenantURL, authorizationURL, auditURL, schedulerURL, swaggerURL, applicationURL, dictionaryURL, workflowURL, searchURL, meteringURL, billingURL, ruleURL, exportURL, importURL} {
 		waitReady(t, ctx, baseURL)
 	}
 	suffix := fmt.Sprint(time.Now().UnixNano())
@@ -74,6 +77,39 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	decodeBody(t, createdTenant, &tenantResult)
 	tenantID := tenantResult.Tenant.ID
 	tokens.AccessToken = issueTenantToken(t, ctx, serviceURL("IDENTITY_GRPC", "127.0.0.1:19081"), tokens.AccessToken, user.ID, tenantID, tenantResult.OwnerMembership.ID)
+	waitImportDataset(t, ctx, importURL, tokens.AccessToken, tenantID, "billing.plans")
+	planCode := "system-plan-" + suffix
+	createdImport := post(t, ctx, importURL+"/api/v1/imports/create", tokens.AccessToken, map[string]any{"tenant_id": tenantID, "provider_service": "billing-service", "dataset_code": "billing.plans", "format": "csv", "filename": "plans.csv", "idempotency_key": "system-import-" + suffix})
+	var importCreation struct {
+		Job struct {
+			ID      string `json:"id"`
+			Version int64  `json:"version"`
+		} `json:"job"`
+		UploadURL     string            `json:"upload_url"`
+		UploadHeaders map[string]string `json:"upload_headers"`
+	}
+	decodeBody(t, createdImport, &importCreation)
+	content := []byte("code,name,description,currency,billing_interval,base_amount_minor,trial_days,entitlements_json\n" + planCode + ",System Plan,,CNY,month,9900,7,{}\n")
+	putUpload(t, ctx, importCreation.UploadURL, importCreation.UploadHeaders, content)
+	digest := sha256.Sum256(content)
+	completedImport := post(t, ctx, importURL+"/api/v1/imports/complete-upload", tokens.AccessToken, map[string]any{"tenant_id": tenantID, "id": importCreation.Job.ID, "version": importCreation.Job.Version, "source_bytes": len(content), "source_checksum": hex.EncodeToString(digest[:])})
+	var queuedImport struct {
+		Version int64 `json:"version"`
+	}
+	decodeBody(t, completedImport, &queuedImport)
+	readyImport := waitImportStatus(t, ctx, importURL, tokens.AccessToken, tenantID, importCreation.Job.ID, "ready")
+	post(t, ctx, importURL+"/api/v1/imports/confirm", tokens.AccessToken, map[string]any{"tenant_id": tenantID, "id": importCreation.Job.ID, "version": readyImport.Version, "idempotency_key": "system-import-confirm-" + suffix})
+	waitImportStatus(t, ctx, importURL, tokens.AccessToken, tenantID, importCreation.Job.ID, "succeeded")
+	importedPlan := post(t, ctx, billingURL+"/api/v1/plans/get", tokens.AccessToken, map[string]any{"code": planCode})
+	var plan struct {
+		Plan struct {
+			Code string `json:"code"`
+		} `json:"plan"`
+	}
+	decodeBody(t, importedPlan, &plan)
+	if plan.Plan.Code != planCode {
+		t.Fatalf("imported billing plan mismatch: %+v", plan)
+	}
 	organizationResponse := post(t, ctx, tenantURL+"/api/v1/organization-units/create", tokens.AccessToken, map[string]any{"tenant_id": tenantID, "code": "engineering", "name": "Engineering"})
 	var organization struct {
 		Code string `json:"code"`
@@ -337,6 +373,77 @@ func waitSearchDocument(t *testing.T, ctx context.Context, baseURL, token, tenan
 	t.Fatalf("application %s was not projected into search within 30 seconds", applicationID)
 }
 
+func waitImportDataset(t *testing.T, ctx context.Context, baseURL, token, tenantID, code string) {
+	t.Helper()
+	deadline := time.Now().Add(30 * time.Second)
+	for time.Now().Before(deadline) {
+		result, statusCode, err := tryPost(ctx, baseURL+"/api/v1/imports/datasets/list", token, map[string]any{"tenant_id": tenantID, "search": code, "page": 1, "page_size": 20})
+		if err != nil || statusCode != http.StatusOK || result.Code != 0 {
+			time.Sleep(250 * time.Millisecond)
+			continue
+		}
+		var page struct {
+			Items []struct {
+				Code string `json:"code"`
+			} `json:"items"`
+		}
+		decodeBody(t, result, &page)
+		for _, item := range page.Items {
+			if item.Code == code {
+				return
+			}
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+	t.Fatalf("import dataset %s was not discovered within 30 seconds", code)
+}
+
+type importJobStatus struct {
+	Status       string `json:"status"`
+	Version      int64  `json:"version"`
+	ErrorCode    string `json:"error_code"`
+	ErrorMessage string `json:"error_message"`
+}
+
+func waitImportStatus(t *testing.T, ctx context.Context, baseURL, token, tenantID, id, expected string) importJobStatus {
+	t.Helper()
+	deadline := time.Now().Add(45 * time.Second)
+	for time.Now().Before(deadline) {
+		result := post(t, ctx, baseURL+"/api/v1/imports/get", token, map[string]any{"tenant_id": tenantID, "id": id})
+		var job importJobStatus
+		decodeBody(t, result, &job)
+		if job.Status == expected {
+			return job
+		}
+		if job.Status == "failed" || job.Status == "validation_failed" || job.Status == "canceled" || job.Status == "expired" {
+			t.Fatalf("import job reached %s while waiting for %s: %+v", job.Status, expected, job)
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+	t.Fatalf("import job %s did not reach %s within 45 seconds", id, expected)
+	return importJobStatus{}
+}
+
+func putUpload(t *testing.T, ctx context.Context, target string, headers map[string]string, content []byte) {
+	t.Helper()
+	request, err := http.NewRequestWithContext(ctx, http.MethodPut, target, bytes.NewReader(content))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for key, value := range headers {
+		request.Header.Set(key, value)
+	}
+	result, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer result.Body.Close()
+	if result.StatusCode < http.StatusOK || result.StatusCode >= http.StatusMultipleChoices {
+		body, _ := io.ReadAll(result.Body)
+		t.Fatalf("PUT import source status=%d body=%s", result.StatusCode, body)
+	}
+}
+
 func serviceURL(name, fallback string) string {
 	return envOr("SYSTEM_TEST_"+name+"_URL", fallback)
 }
@@ -368,13 +475,24 @@ func waitReady(t *testing.T, ctx context.Context, baseURL string) {
 
 func post(t *testing.T, ctx context.Context, target, token string, body any) response {
 	t.Helper()
-	encoded, err := json.Marshal(body)
+	result, statusCode, err := tryPost(ctx, target, token, body)
 	if err != nil {
 		t.Fatal(err)
 	}
+	if statusCode != http.StatusOK || result.Code != 0 || result.RequestID == "" {
+		t.Fatalf("POST %s status=%d response=%+v", target, statusCode, result)
+	}
+	return result
+}
+
+func tryPost(ctx context.Context, target, token string, body any) (response, int, error) {
+	encoded, err := json.Marshal(body)
+	if err != nil {
+		return response{}, 0, err
+	}
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, target, bytes.NewReader(encoded))
 	if err != nil {
-		t.Fatal(err)
+		return response{}, 0, err
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-Request-ID", "system-test-"+fmt.Sprint(time.Now().UnixNano()))
@@ -387,17 +505,14 @@ func post(t *testing.T, ctx context.Context, target, token string, body any) res
 	}
 	httpResponse, err := http.DefaultClient.Do(request)
 	if err != nil {
-		t.Fatal(err)
+		return response{}, 0, err
 	}
 	defer httpResponse.Body.Close()
 	var result response
 	if err := json.NewDecoder(httpResponse.Body).Decode(&result); err != nil {
-		t.Fatalf("decode %s response: %v", target, err)
+		return response{}, httpResponse.StatusCode, err
 	}
-	if httpResponse.StatusCode != http.StatusOK || result.Code != 0 || result.RequestID == "" {
-		t.Fatalf("POST %s status=%d response=%+v", target, httpResponse.StatusCode, result)
-	}
-	return result
+	return result, httpResponse.StatusCode, nil
 }
 
 func decodeBody(t *testing.T, value response, target any) {
