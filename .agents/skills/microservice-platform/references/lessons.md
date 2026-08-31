@@ -357,4 +357,4 @@
 
 - Symptom: platform CI was terminated while many Go image builds remained in compiler steps, despite no functional assertion failure.
 - Root cause: Compose started every independent service image build concurrently, exhausting the hosted runner's memory/CPU and leaving builds stalled until runner shutdown.
-- Prevention: set `COMPOSE_PARALLEL_LIMIT` to a small explicit value in CI and in the `dev-up` default while allowing a deliberate override; keep failure log collection enabled.
+- Prevention: `COMPOSE_PARALLEL_LIMIT` alone is insufficient when Compose submits one BuildKit graph. Install a CI BuildKit builder with a small worker `max-parallelism`, retain the Compose limit for engine operations, and keep failure log collection enabled.
