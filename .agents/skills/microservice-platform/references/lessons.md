@@ -568,3 +568,9 @@
 - Symptom: immediately after pushing a valid shared-contract tag, `go mod tidy` failed with an EOF while fetching the new version from `proxy.golang.org`.
 - Root cause: the public module proxy had not indexed the just-created Git tag yet; the repository and tag were already reachable directly.
 - Prevention: publish contracts before dependent modules, verify the remote tag, use `GOPROXY=direct` only for immediate local validation when proxy propagation lags, and keep released semantic versions in committed module files so CI validates the normal proxy path.
+
+## 2026-09-01: CLI diagnostic writes are still fallible I/O
+
+- Symptom: unit, race, vet, and build checks passed, but CI lint rejected an unchecked `fmt.Fprintln` used to print a Cobra execution error to stderr.
+- Root cause: diagnostic output was treated as consequence-free even though the project enables `errcheck` for all writer calls.
+- Prevention: route CLI output through injected writers, explicitly handle or intentionally discard both write results, and run the repository's pinned golangci-lint version before pushing CLI changes.
