@@ -562,3 +562,9 @@
 - Symptom: a timeout or unavailable authorization-service was returned as `403 permission denied`, hiding an infrastructure incident and making clients treat a retryable dependency failure as a permanent policy decision.
 - Root cause: the shared enforcement helper wrapped every Authorizer error with the denial sentinel.
 - Prevention: Authorizers return `ErrDenied` only for an explicit negative decision and `ErrDecisionUnavailable` for missing clients, deadlines, or RPC failures; HTTP maps them to 403 and 503 respectively, gRPC maps them to `PermissionDenied` and `Unavailable`, and both classifications have unit regressions.
+
+## 2026-09-01: newly published Go module tags may lag at the public proxy
+
+- Symptom: immediately after pushing a valid shared-contract tag, `go mod tidy` failed with an EOF while fetching the new version from `proxy.golang.org`.
+- Root cause: the public module proxy had not indexed the just-created Git tag yet; the repository and tag were already reachable directly.
+- Prevention: publish contracts before dependent modules, verify the remote tag, use `GOPROXY=direct` only for immediate local validation when proxy propagation lags, and keep released semantic versions in committed module files so CI validates the normal proxy path.
