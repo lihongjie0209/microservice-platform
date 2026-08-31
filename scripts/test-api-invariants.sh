@@ -15,6 +15,10 @@ for service in services/*-service; do
 		echo "$service: non-identity services must verify identity-service tokens through platform-go/authn" >&2
 		exit 1
 	fi
+	if [ "$name" != identity-service ] && ! grep -R -E -q 'App\.Env == "production".*Auth\.JWKSURL' "$service/internal/config" --include='*.go'; then
+		echo "$service: production configuration must fail closed without Identity JWKS, issuer, and audience" >&2
+		exit 1
+	fi
 	spec="$service/docs/swagger.json"
 	if [ ! -s "$spec" ] || ! grep -q '"post"[[:space:]]*:' "$spec"; then
 		echo "$service: generated OpenAPI POST operations are missing" >&2
