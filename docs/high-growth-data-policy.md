@@ -18,7 +18,7 @@ not a second OLTP table shared by services.
 | workflow-service | `workflow_task_history` | 365 days after owner instance reaches terminal state; workflow worker | CDC / export | Deferred: task/workflow identity must first include a time bucket | Implemented |
 | every event producer | published Outbox records | Service-specific, normally at least JetStream replay window; owning service | Event archive / object storage | Use existing native partitions where present; delete only `published_at IS NOT NULL` | Shared SDK primitive implemented; per-service scheduling in progress |
 | webhook-service | durable Inbox records | 30 days after completion; webhook worker | Not normally archived | Retention cleanup preserves failed/processing duplicate-delivery boundaries | Implemented |
-| search-service | durable Inbox records | At least source JetStream replay window; search consumer | Not normally archived | Retention cleanup must preserve duplicate-delivery boundary | Pending service implementation |
+| search-service | durable Inbox records | 14 days after completion; search projection worker | Not normally archived | Retention cleanup preserves failed/processing duplicate-delivery boundaries | Implemented |
 | billing-service | provider callbacks and payment attempts | Finance/compliance policy; billing operations | Immutable finance archive | Partition only after legal hold and idempotency keys are time-bucketed | Pending policy implementation |
 | data-export-service / import-service | job metadata | Result-object lifecycle plus operational history; owning service | Existing result object storage / CDC | Use state expiry first; partition based on measured history volume | Pending metadata retention implementation |
 
