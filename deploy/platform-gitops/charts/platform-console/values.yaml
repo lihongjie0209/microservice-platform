@@ -1,0 +1,33 @@
+name: platform-console
+namespace: platform-development
+environment: development
+replicas: 2
+
+image:
+  repository: ghcr.io/lihongjie0209/platform-console
+  tag: latest
+  pullPolicy: IfNotPresent
+
+gateway:
+  baseDomain: ""
+  environmentLabel: dev
+  production: false
+  ingressClassName: apisix-dev
+
+resources:
+  requests: {cpu: 50m, memory: 64Mi}
+  limits: {cpu: 500m, memory: 256Mi}
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilization: 70
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+  gatewayNamespace: ingress-apisix-development

@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "platform-console.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels: {app.kubernetes.io/name: {{ .Values.name }}}
+  template:
+    metadata:
+      labels:
+        {{- include "platform-console.labels" . | nindent 8 }}
+    spec:
+      securityContext: {runAsNonRoot: true, runAsUser: 101, runAsGroup: 101, fsGroup: 101, seccompProfile: {type: RuntimeDefault}}
+      initContainers:
+        - name: prepare-runtime-config
+          image: "{{ required "image.repository is required" .Values.image.repository }}:{{ required "image.tag is required" .Values.image.tag }}"
+          command: [sh, -c, "touch /runtime/platform-config.js"]
+          envFrom: [{configMapRef: {name: {{ .Values.name }}}}]
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: runtime-config, mountPath: /runtime}]
+      containers:
+        - name: console
+          image: "{{ required "image.repository is required" .Values.image.repository }}:{{ required "image.tag is required" .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom: [{configMapRef: {name: {{ .Values.name }}}}]
+          ports: [{name: http, containerPort: 8080, protocol: TCP}]
+          readinessProbe: {httpGet: {path: /, port: http}, initialDelaySeconds: 3, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /, port: http}, initialDelaySeconds: 10, periodSeconds: 10}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: nginx-cache, mountPath: /var/cache/nginx}
+            - {name: nginx-run, mountPath: /var/run}
+            - {name: runtime-config, mountPath: /usr/share/nginx/html/platform-config.js, subPath: platform-config.js}
+          resources: {{- .Values.resources | toYaml | nindent 12 }}
+      volumes:
+        - {name: nginx-cache, emptyDir: {}}
+        - {name: nginx-run, emptyDir: {}}
+        - {name: runtime-config, emptyDir: {}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "platform-console.labels" . | nindent 4 }}
+spec:
+  selector: {app.kubernetes.io/name: {{ .Values.name }}}
+  ports: [{name: http, port: 80, targetPort: http, protocol: TCP}]
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Values.namespace }}
+spec:
+  ingressClassName: {{ .Values.gateway.ingressClassName | quote }}
+  http:
+    - name: console
+      match:
+        hosts: [{{ printf "console.%s" (include "platform-console.environmentDomain" .) | quote }}]
+        paths: ["/*"]
+        methods: [GET, HEAD]
+      backends:
+        - {serviceName: {{ .Values.name }}, servicePort: http, resolveGranularity: endpoints}
+{{- if .Values.podDisruptionBudget.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: {name: {{ .Values.name }}, namespace: {{ .Values.namespace }}}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  selector: {matchLabels: {app.kubernetes.io/name: {{ .Values.name }}}}
+{{- end }}
+{{- if .Values.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: {name: {{ .Values.name }}, namespace: {{ .Values.namespace }}}
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: {{ .Values.name }}}
+  minReplicas: {{ .Values.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: {type: Utilization, averageUtilization: {{ .Values.autoscaling.targetCPUUtilization }}}
+{{- end }}
+{{- if .Values.networkPolicy.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: {{ .Values.name }}, namespace: {{ .Values.namespace }}}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: {{ .Values.name }}}}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: {{ .Values.networkPolicy.gatewayNamespace }}}}
+      ports: [{port: 8080, protocol: TCP}]
+  egress:
+    - to:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
+      ports: [{port: 53, protocol: UDP}, {port: 53, protocol: TCP}]
+{{- end }}

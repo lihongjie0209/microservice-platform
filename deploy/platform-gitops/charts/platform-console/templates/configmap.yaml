@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "platform-console.labels" . | nindent 4 }}
+data:
+  PLATFORM_ENV: {{ .Values.environment | quote }}
+  PLATFORM_IDENTITY_URL: {{ include "platform-console.serviceURL" (dict "service" "identity-service" "root" .) | quote }}
+  PLATFORM_TENANT_URL: {{ include "platform-console.serviceURL" (dict "service" "tenant-service" "root" .) | quote }}
+  PLATFORM_AUTHORIZATION_URL: {{ include "platform-console.serviceURL" (dict "service" "authorization-service" "root" .) | quote }}
+  PLATFORM_APPLICATION_URL: {{ include "platform-console.serviceURL" (dict "service" "application-service" "root" .) | quote }}
+  PLATFORM_AUDIT_URL: {{ include "platform-console.serviceURL" (dict "service" "audit-service" "root" .) | quote }}
+  PLATFORM_CONFIG_URL: {{ include "platform-console.serviceURL" (dict "service" "config-service" "root" .) | quote }}
+  PLATFORM_NOTIFICATION_URL: {{ include "platform-console.serviceURL" (dict "service" "notification-service" "root" .) | quote }}
+  PLATFORM_FILE_URL: {{ include "platform-console.serviceURL" (dict "service" "file-service" "root" .) | quote }}
+  PLATFORM_SCHEDULER_URL: {{ include "platform-console.serviceURL" (dict "service" "scheduler-service" "root" .) | quote }}
+  PLATFORM_DICTIONARY_URL: {{ include "platform-console.serviceURL" (dict "service" "dictionary-service" "root" .) | quote }}
+  PLATFORM_SERVICE_REGISTRY_URL: {{ include "platform-console.serviceURL" (dict "service" "service-registry-service" "root" .) | quote }}
+  PLATFORM_WEBHOOK_URL: {{ include "platform-console.serviceURL" (dict "service" "webhook-service" "root" .) | quote }}
+  PLATFORM_WORKFLOW_URL: {{ include "platform-console.serviceURL" (dict "service" "workflow-service" "root" .) | quote }}
+  PLATFORM_SEARCH_URL: {{ include "platform-console.serviceURL" (dict "service" "search-service" "root" .) | quote }}
+  PLATFORM_METERING_URL: {{ include "platform-console.serviceURL" (dict "service" "metering-service" "root" .) | quote }}
+  PLATFORM_BILLING_URL: {{ include "platform-console.serviceURL" (dict "service" "billing-service" "root" .) | quote }}
+  PLATFORM_RULE_URL: {{ include "platform-console.serviceURL" (dict "service" "rule-service" "root" .) | quote }}
+  PLATFORM_DATA_EXPORT_URL: {{ include "platform-console.serviceURL" (dict "service" "data-export-service" "root" .) | quote }}
+  PLATFORM_IMPORT_URL: {{ include "platform-console.serviceURL" (dict "service" "import-service" "root" .) | quote }}
+  PLATFORM_SWAGGER_URL: {{ include "platform-console.serviceURL" (dict "service" "swagger-service" "root" .) | quote }}

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: platform-console
+description: Platform console deployment with environment-scoped service discovery URLs
+type: application
+version: 0.1.0
+appVersion: "1.4.0"

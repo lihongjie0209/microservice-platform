@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: platform-console
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: [missingkey=error]
+  generators:
+    - list:
+        elements:
+          # Replace baseDomain before enabling the console applications.
+          - {environment: development, profile: development, cluster: "https://kubernetes.default.svc", namespace: platform-development, gatewayNamespace: ingress-apisix-development, ingressClass: apisix-dev, environmentLabel: dev, production: "false", baseDomain: "", imageTag: v1.4.0}
+          - {environment: testing, profile: testing, cluster: "https://kubernetes.default.svc", namespace: platform-testing, gatewayNamespace: ingress-apisix-testing, ingressClass: apisix-test, environmentLabel: test, production: "false", baseDomain: "", imageTag: v1.4.0}
+          - {environment: production, profile: production, cluster: "https://kubernetes.default.svc", namespace: platform-production, gatewayNamespace: ingress-apisix-production, ingressClass: apisix-prod, environmentLabel: "", production: "true", baseDomain: "", imageTag: v1.4.0}
+  template:
+    metadata:
+      name: 'platform-console-{{ .environment }}'
+      labels: {platform.environment: '{{ .environment }}', platform.service: platform-console}
+    spec:
+      project: platform
+      source:
+        repoURL: https://github.com/lihongjie0209/microservice-platform.git
+        targetRevision: main
+        path: deploy/platform-gitops/charts/platform-console
+        helm:
+          releaseName: platform-console
+          parameters:
+            - {name: namespace, value: '{{ .namespace }}'}
+            - {name: environment, value: '{{ .profile }}'}
+            - {name: image.tag, value: '{{ .imageTag }}'}
+            - {name: gateway.baseDomain, value: '{{ .baseDomain }}'}
+            - {name: gateway.environmentLabel, value: '{{ .environmentLabel }}'}
+            - {name: gateway.production, value: '{{ .production }}'}
+            - {name: gateway.ingressClassName, value: '{{ .ingressClass }}'}
+            - {name: networkPolicy.gatewayNamespace, value: '{{ .gatewayNamespace }}'}
+      destination: {server: '{{ .cluster }}', namespace: '{{ .namespace }}'}
+      syncPolicy:
+        automated: {prune: true, selfHeal: true}
+        syncOptions: [CreateNamespace=true, ServerSideApply=true]

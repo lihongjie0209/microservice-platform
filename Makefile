@@ -187,6 +187,9 @@ delivery-check: $(YQ)
 	YQ=$(YQ) sh deploy/platform-gitops/scripts/test-apisix-applicationset.sh
 	sh deploy/platform-gitops/charts/platform-service/scripts/test-render.sh
 	YQ=$(YQ) sh deploy/platform-gitops/scripts/test-services-applicationset.sh
+	helm lint deploy/platform-gitops/charts/platform-console --set gateway.baseDomain=example.test
+	sh deploy/platform-gitops/charts/platform-console/scripts/test-render.sh
+	YQ=$(YQ) sh deploy/platform-gitops/scripts/test-console-applicationset.sh
 
 compose-check:
 	docker compose -f environments/local/docker-compose.yml config -q
