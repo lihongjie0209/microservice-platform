@@ -591,7 +591,7 @@
 
 - Symptom: all local tests and lint passed after upgrading a service to the latest central Proto module, but CI failed before testing because its contract-ownership gate still asserted the previous exact version.
 - Root cause: `go.mod` and the workflow's central-contract version assertion were maintained as separate sources of truth.
-- Prevention: keep the exact dependency version only in `go.mod`; CI verifies that it is a released semantic version, has no local `replace`, and that the service contains no copied `proto`/`gen` trees. Do not duplicate the exact version string in workflow YAML.
+- Prevention: keep the exact dependency version only in `go.mod`; immediately run `go mod tidy` after every dependency upgrade so superseded checksums are removed. CI verifies that the dependency is a released semantic version, has no local `replace`, and that the service contains no copied `proto`/`gen` trees. Do not duplicate the exact version string in workflow YAML.
 
 ## 2026-09-01: gRPC authorization must cover streaming methods
 

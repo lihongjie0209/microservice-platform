@@ -199,11 +199,11 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 
 ### billing-service
 
-- 管理套餐、用量价格、租户订阅、账单、支付尝试和退款，提供独立 POST+JSON 页面接口与中央 `platform.billing.v1` gRPC 契约
-- 通过 metering-service API 获取用量，通过 authorization-service 统一决策套餐管理权限，绝不跨 schema 查询
+- 套餐和用量价格属于平台级目录；订阅、账单、支付尝试和退款统一按 `tenant_id + application_id` 隔离，提供独立 POST+JSON 页面接口与中央 `platform.billing.v1` gRPC 契约
+- 每个租户应用独立维护有效订阅；通过 application-service 校验应用授权，通过 metering-service API 按相同租户/应用获取用量，通过 authorization-service 统一决策套餐管理权限，绝不跨 schema 查询
 - 发票、支付、提供商回调和退款具有持久化幂等边界；所有更新使用版本号乐观锁
 - 下周期换套餐及期末取消由服务内定时任务推进，Redis 分布式锁限制多副本并发
-- 领域事件使用公共 Envelope 和事务 Outbox 发布到 `PLATFORM_EVENTS`
+- 领域事件使用携带租户和应用作用域的公共 Envelope，并通过事务 Outbox 发布到 `PLATFORM_EVENTS`
 
 ### rule-service
 
