@@ -114,10 +114,15 @@ go vet ./...
 buf lint
 buf generate
 git diff --exit-code -- generated-paths
+# Local: compile integration/system suites without executing them.
+go test -tags=integration -run '^$' ./integration/...
+# GitHub CI only: execute Testcontainers integration suites.
 go test -tags=integration -count=1 ./integration/...
 ```
 
-Also generate a fresh service when changing the template/generator. Within each service verify frontend API, gRPC status behavior, outbound client behavior against stubs, event redelivery/idempotency, migration up/down, and shared-database schema isolation. Run platform `system-tests` separately for multi-service journeys.
+Local development must not execute Testcontainers, Docker Compose, or platform system tests. Run unit tests, race tests, vet, lint, generation/config checks, and compile-only checks locally; execute infrastructure-backed integration suites in GitHub CI. Push a coherent change and immediately continue useful development instead of waiting for CI. Revisit queued CI runs opportunistically at task boundaries or idle time and fix failures promptly, adding a deterministic unit regression first whenever possible.
+
+Also generate a fresh service when changing the template/generator. Within each service verify frontend API, gRPC status behavior, outbound client behavior against stubs, event redelivery/idempotency, migration up/down, and shared-database schema isolation. Run platform `system-tests` separately in GitHub CI for multi-service journeys.
 
 ## Maintenance rule
 
