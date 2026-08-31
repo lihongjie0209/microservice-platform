@@ -526,3 +526,9 @@
 - Symptom: Go tests passed after introducing a structured REST view, but `swag init` failed with `cannot find type definition` for an embedded domain entity imported under an alias.
 - Root cause: the transport DTO reused a database/domain struct through cross-package embedding; the Swagger parser could not resolve it, and the design also leaked persistence fields into the public contract implicitly.
 - Prevention: define explicit service-local HTTP response DTO fields and map domain entities deliberately; run Swagger generation before the full test gate and retain structured-JSON transport regressions.
+
+## 2026-09-01: frontend runtime injection must cover every registered service
+
+- Symptom: development configuration and generated contracts supported new application modules, but the production container rendered empty URLs because its environment-variable template still listed only the earliest services.
+- Root cause: the service registry type, local config, container defaults, `envsubst` allowlist, and runtime template were maintained independently without a parity gate.
+- Prevention: update all runtime-config surfaces whenever a service is registered, and keep a CI check that verifies every platform service URL variable has a default, is allowlisted for substitution, and appears in the rendered template.
