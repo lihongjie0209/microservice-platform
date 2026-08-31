@@ -382,3 +382,9 @@
 - Symptom: a generated service still ran Buf breaking/generation checks for deleted Hello Proto files after adopting the versioned central contract module.
 - Root cause: domain conversion removed runtime imports but not generated artifacts, Make targets, CI steps, integration tests, and documentation as one unit.
 - Prevention: when a service adopts `platform-protos`, delete local example Proto/generated files and their Buf CI, pin the released central module, and compile the integration-tag suite before the first commit.
+
+## 2026-08-31: unary client interceptors do not cover streaming RPCs
+
+- Symptom: unary gRPC calls authenticated successfully, while server-streaming and bidirectional provider calls arrived without JWT/PSK, request ID, or idempotency metadata.
+- Root cause: `grpc.WithChainUnaryInterceptor` is never invoked for streaming RPCs.
+- Prevention: install a stream client interceptor that shares the same metadata builder as the unary interceptor; retain a deterministic unit test for authentication and correlation metadata in the template and every streaming consumer.
