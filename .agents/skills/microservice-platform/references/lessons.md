@@ -239,6 +239,12 @@
 - Root cause: plain `git rev-parse HEAD` can print `HEAD` before returning failure, after which the shell fallback appends `unknown`.
 - Prevention: resolve build commits with `git rev-parse --verify HEAD` so an unborn repository produces exactly the fallback value.
 
+## 2026-08-31: do not use zsh special path parameters as loop variables
+
+- Symptom: inspection commands unexpectedly lost utilities such as `rg`, `sed`, and `base64` after a loop assigned to `path`.
+- Root cause: zsh exposes `path` as the tied array form of `PATH`, so a harmless-looking loop variable mutates executable lookup for the rest of that shell.
+- Prevention: use task-specific names such as `service_dir` or `target_file` in shell loops; avoid `path`, `status`, and other shell-special parameter names.
+
 ## 2026-08-30: Kubernetes discovery and document access are separate security decisions
 
 - Symptom: an annotated Service appeared in the Swagger catalog but its production document endpoint was disabled or blocked by cross-namespace NetworkPolicy.

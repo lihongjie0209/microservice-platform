@@ -25,6 +25,14 @@
 - `metering-service` owns meter definitions and immutable tenant usage facts. Ingestion is idempotent by event ID, corrections are append-only adjustment facts, and PostgreSQL/Kingbase facts are time-partitioned. Billing consumes the versioned metering API/events and never reads the metering schema. Aggregate result pagination and dimension filtering execute in the database rather than paging raw facts into application memory.
 - `rule-service` owns tenant rule sets, immutable versions, validation, publication, and deterministic evaluation. Rules are ordered CEL boolean conditions with JSON-object results and a default result; arbitrary scripts and implicit cross-service data reads are forbidden. Facts are supplied explicitly by callers, published definitions are canonicalized and checksummed, and publication emits a transactional Outbox event on `platform.rule.rule-version.published.v1`.
 
+## Frontend
+
+- `platform-console` is an independently versioned, single Vue SPA based on Soybean Admin Element Plus. It hosts both platform administration and future business-system modules; it is not a microfrontend host.
+- Browser clients call only public HTTP service endpoints on service subdomains. They hold Identity access/refresh tokens in `sessionStorage`; browser bundles never receive PSKs, mTLS credentials, internal gRPC access, or other service secrets.
+- The console obtains navigation from the active tenant's application grants and published application menus. Backend menu component strings are data only and are never dynamically imported; every concrete frontend page must be registered in a local allowlist.
+- Console service addresses are public runtime configuration injected into `platform-config.js`. Development uses a checked-in local default; container startup renders the file from `PLATFORM_*_URL` values, and production configuration requires HTTPS.
+- Swagger 2 documents remain service owned. The console converts their pinned published sources to OpenAPI 3 and generated TypeScript declarations; CI regenerates and compares them so documentation/model drift is visible in review.
+
 ## Data
 
 - Services never share tables.
