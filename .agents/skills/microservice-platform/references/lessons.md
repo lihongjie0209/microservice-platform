@@ -556,3 +556,9 @@
 - Symptom: several older services successfully verified an Identity JWKS token but copied only its subject into a service-local principal, allowing request-body tenant IDs to replace the trusted token tenant.
 - Root cause: scaffold-era HTTP/gRPC adapters defined their own reduced authentication context instead of propagating the shared principal returned by `platform-go/authn`.
 - Prevention: all transports store `platform-go/principal.Principal` unchanged, PSK callers become explicit system principals, user-scoped application methods compare the requested tenant with the trusted claim, and CI rejects service-local principal packages or non-Identity token verification.
+
+## 2026-09-01: authorization denial and decision outage are different failures
+
+- Symptom: a timeout or unavailable authorization-service was returned as `403 permission denied`, hiding an infrastructure incident and making clients treat a retryable dependency failure as a permanent policy decision.
+- Root cause: the shared enforcement helper wrapped every Authorizer error with the denial sentinel.
+- Prevention: Authorizers return `ErrDenied` only for an explicit negative decision and `ErrDecisionUnavailable` for missing clients, deadlines, or RPC failures; HTTP maps them to 403 and 503 respectively, gRPC maps them to `PermissionDenied` and `Unavailable`, and both classifications have unit regressions.
