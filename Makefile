@@ -17,12 +17,12 @@ SERVICE_DIR = services/$(SERVICE)
 
 .DEFAULT_GOAL := help
 .PHONY: help bootstrap fmt contracts contracts-check sdk-test sdk-integration \
-	services-build services-test services-vet services-lint services-swagger services-swagger-check services-integration services-integration-compile \
+	services-build services-test services-vet services-lint services-swagger services-swagger-check services-integration services-ci-integration services-integration-compile \
 	service-check service-run service-build service-docker-build service-test service-test-race \
 	service-test-integration service-lint service-fmt service-swagger-check service-migrate-up \
 	service-migrate-down service-dev-up service-dev-down service-dev-logs \
 	build test test-integration ci-test-integration lint swagger swagger-check verify \
-	delivery-check compose-check loop-failure-check infra-up infra-down infra-logs infra-status dev-up dev-down dev-logs system-test ci-system-test clean clean-tools
+	delivery-check compose-check loop-failure-check integration-policy-check infra-up infra-down infra-logs infra-status dev-up dev-down dev-logs system-test ci-system-test clean clean-tools
 
 help:
 	@echo "Workspace commands:"
@@ -119,6 +119,9 @@ services-swagger:
 services-integration:
 	@set -e; for service in $(SERVICES); do $(MAKE) -C services/$$service test-integration || exit $$?; done
 
+services-ci-integration:
+	@set -e; for service in $(SERVICES); do $(MAKE) -C services/$$service ci-test-integration || exit $$?; done
+
 services-integration-compile:
 	@set -e; for service in $(SERVICES); do (cd services/$$service && go test -tags=integration -run '^$$' ./integration/...) || exit $$?; done
 
@@ -139,7 +142,9 @@ test: sdk-test services-test
 test-integration: services-integration-compile
 	@cd libraries/platform-go && go test -tags=integration -run '^$$' ./...
 
-ci-test-integration: sdk-integration services-integration
+ci-test-integration:
+	$(MAKE) -C libraries/platform-go ci-test-integration
+	$(MAKE) services-ci-integration
 
 lint: services-vet services-lint
 
@@ -147,12 +152,15 @@ swagger: services-swagger
 
 swagger-check: services-swagger-check
 
-verify: contracts-check sdk-test services-test services-vet services-swagger-check delivery-check compose-check loop-failure-check
+verify: contracts-check sdk-test services-test services-vet services-swagger-check delivery-check compose-check loop-failure-check integration-policy-check
 
 loop-failure-check:
 	@if $(MAKE) --no-print-directory services-build SERVICES="missing-service workflow-service" >/dev/null 2>&1; then \
 		echo "per-service loop swallowed an earlier child failure" >&2; exit 1; \
 	fi
+
+integration-policy-check:
+	sh scripts/test-integration-policy.sh
 
 delivery-check: $(YQ)
 	helm lint deploy/platform-helm
