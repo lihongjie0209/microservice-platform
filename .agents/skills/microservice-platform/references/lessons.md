@@ -580,3 +580,9 @@
 - Symptom: a PSK-protected machine endpoint produced a valid service-account principal locally, but its subsequent centralized authorization check had no credential to authenticate to authorization-service.
 - Root cause: the HTTP PSK branch stored only the principal, while the Bearer branch also attached the original `Authorization` value for downstream forwarding; gRPC hid the gap because incoming metadata is forwarded automatically.
 - Prevention: every authenticated HTTP branch attaches both the shared principal and the original caller credential with `authz.WithCallerCredential`; cover PSK-protected authorization paths when rolling shared authorization into a service.
+
+## 2026-09-01: dependency upgrades must update CI version assertions
+
+- Symptom: all local tests and lint passed after upgrading a service to the latest central Proto module, but CI failed before testing because its contract-ownership gate still asserted the previous exact version.
+- Root cause: `go.mod` and the workflow's deliberate central-contract version assertion were maintained as separate artifacts.
+- Prevention: whenever a service changes `platform-protos` or another centrally pinned contract module, search CI, Makefiles, and scripts for the previous version and update every exact-version gate in the same commit; validate the assertion locally before pushing.
