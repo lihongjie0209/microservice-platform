@@ -211,7 +211,7 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 
 ### metering-service
 
-- 计量器定义是平台级目录；批量用量采集、追加式调整和按小时/日/月聚合查询统一按 `tenant_id + application_id` 隔离，并通过 application-service 校验租户应用授权
+- 计量器定义是平台级目录，目录读写接口和控制台菜单统一在 `__platform__` 范围授权；批量用量采集、追加式调整和按小时/日/月聚合查询统一按 `tenant_id + application_id` 隔离，并通过 application-service 校验租户应用授权
 - 同一批次允许包含多个租户/应用，但事务 Outbox 必须按租户/应用拆分事件，禁止用首条记录的作用域代表整个批次
 - HTTP 页面接口使用 POST+JSON，内部调用使用中央 `platform.metering.v1` gRPC 契约
 - 用量写入以 event ID 幂等，事务内同时写事实与 Outbox，并发布 MeterChanged/UsageRecorded 事件
@@ -220,7 +220,7 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 
 ### billing-service
 
-- 套餐和用量价格属于平台级目录；订阅、账单、支付尝试和退款统一按 `tenant_id + application_id` 隔离，提供独立 POST+JSON 页面接口与中央 `platform.billing.v1` gRPC 契约
+- 套餐和用量价格属于平台级目录，目录读写接口和控制台菜单统一在 `__platform__` 范围授权；订阅、账单、支付尝试和退款统一按 `tenant_id + application_id` 隔离，提供独立 POST+JSON 页面接口与中央 `platform.billing.v1` gRPC 契约
 - 每个租户应用独立维护有效订阅；通过 application-service 校验应用授权，通过 metering-service API 按相同租户/应用获取用量，通过 authorization-service 统一决策套餐管理权限，绝不跨 schema 查询
 - 发票、支付、提供商回调和退款具有持久化幂等边界；所有更新使用版本号乐观锁
 - 下周期换套餐及期末取消由服务内定时任务推进，Redis 分布式锁限制多副本并发
