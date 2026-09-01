@@ -706,3 +706,9 @@
 - Symptom: local tests, race, vet, lint, and builds passed after a shared Proto upgrade, while CI failed its module consistency step because `go.sum` still contained checksums for the superseded Proto version.
 - Root cause: `go get` added the new module version but did not remove every now-unused checksum; the local gate omitted the same `go mod tidy && git diff` assertion used by CI.
 - Prevention: after every Go dependency version change, run `go mod tidy`, verify `git diff --exit-code -- go.mod go.sum` after a second tidy, then run the service gates before pushing.
+
+## 2026-09-02: authorization preview APIs must bind interactive subjects
+
+- Symptom: authenticated users could submit arbitrary `tenant_id`, `subject_id`, and `subject_type` values to generic authorization decision endpoints, making those endpoints an authorization-information oracle even though management routes were protected.
+- Root cause: a service-to-service preview contract was exposed to browser users without replacing caller-supplied subject fields with trusted JWT scope.
+- Prevention: bind interactive decisions to the JWT tenant and membership, permit arbitrary-subject previews only for authenticated service/system callers, and provide a dedicated current-membership permission-code batch endpoint for navigation. Filtered menus improve UX but never replace backend authorization.

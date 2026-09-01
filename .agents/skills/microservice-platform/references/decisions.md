@@ -83,6 +83,7 @@
 - Every selected application receives a console-owned overview route under its application namespace. It may summarize only the application's already authorized published navigation and remains usable when no business menu has been published; business pages and default routes still come from application-service.
 - External application menus accept and open only absolute HTTP(S) URLs without embedded user information. application-service enforces this at the write boundary and the console fails closed again for legacy catalog data.
 - Password login creates an unscoped interactive session. Selecting a tenant is an explicit token exchange owned by tenant-service and identity-service together: tenant-service validates the current user's persisted active membership, then a trusted service call asks identity-service to persist tenant/membership on the same session and issue the scoped token. Refresh inherits persisted session scope. Direct user calls to `IssueTenantToken` are forbidden, and concurrent console selections are serialized.
+- After tenant selection, the console collects permission codes from all active application menus and asks authorization-service for a bounded current-membership batch decision. The decision endpoint derives tenant and membership only from the JWT, preserves requested order, supports wildcard roles, and evaluates grants in one query per 100 codes. The console removes denied menu subtrees for usability; service-side authorization remains the security boundary.
 
 ## Testing
 
