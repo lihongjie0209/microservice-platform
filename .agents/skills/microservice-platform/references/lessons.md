@@ -586,3 +586,9 @@
 - Symptom: all local tests and lint passed after upgrading a service to the latest central Proto module, but CI failed before testing because its contract-ownership gate still asserted the previous exact version.
 - Root cause: `go.mod` and the workflow's deliberate central-contract version assertion were maintained as separate artifacts.
 - Prevention: whenever a service changes `platform-protos` or another centrally pinned contract module, search CI, Makefiles, and scripts for the previous version and update every exact-version gate in the same commit; validate the assertion locally before pushing.
+
+## 2026-09-01: gRPC authorization must cover streaming methods
+
+- Symptom: unary business RPCs were centrally authorized, but a server-streaming discovery/watch method would bypass the unary interceptor entirely.
+- Root cause: the shared authorization SDK exposed only a unary server interceptor, and service integration treated that as complete gRPC coverage.
+- Prevention: inventory unary and streaming methods separately, apply both shared unary and stream authorization interceptors, include every business stream in the resolver table, and add an exhaustive resolver test plus denial/outage classification tests.
