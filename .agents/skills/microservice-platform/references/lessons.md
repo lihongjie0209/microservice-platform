@@ -610,3 +610,9 @@
 - Symptom: a usage ingestion batch could contain several tenant/application pairs, while its single Outbox envelope used the first item's scope and exposed unrelated facts to a scoped consumer.
 - Root cause: batch atomicity was mistaken for a single authorization and event-routing boundary.
 - Prevention: validate and authorize every distinct scope once, group successfully inserted records by authoritative tenant/application scope inside the transaction, and publish one envelope per group; retain a unit regression that decodes every envelope and compares all payload item scopes with its metadata.
+
+## 2026-09-01: use the repository formatter through its own lint command
+
+- Symptom: directly invoking Prettier rewrote Vue and TypeScript files with default double quotes, while the repository ESLint/Prettier integration required single quotes and reported a large formatting diff.
+- Root cause: the standalone formatter did not load the same effective rules as the project's lint command.
+- Prevention: use `pnpm lint:fix` for platform-console formatting, then run `pnpm typecheck` and `pnpm lint`; do not assume a globally familiar formatter command has the repository's effective configuration.

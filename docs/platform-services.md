@@ -79,7 +79,10 @@
 - 模板、变量、语言和渠道路由
 - 异步发送、重试、频控和死信
 - 发送状态、回执和供应商切换
-- 幂等键避免重复通知
+- 模板、投递、回执和幂等键均按 `tenant_id + application_id` 隔离
+- 通过 application-service 校验租户是否已获当前应用授权
+- 工作进程从持久化投递记录继承应用归属，事件 Envelope 同时携带租户与应用
+- 历史数据采用 expand/backfill/contract 迁移，禁止用虚拟默认应用掩盖未知归属
 
 ### 7. file-service
 
