@@ -35,6 +35,7 @@
 - The post-login home is a tenant-aware application launcher. It restores only active session-scoped tenant/application choices, lists grants from application-service, and enters a valid published default page; server-side services remain authoritative for every permission decision.
 - Frontend source modules are organized by user-facing application (`src/apps/<application>`), not by backend service. A module may compose several service-owned HTTP APIs; published menu `component` values are stable page keys such as `platform-admin.users`, resolved only through the local application page registry.
 - Every generated application route carries its locally derived application ID. The authenticated route guard synchronizes that ID into the session-scoped platform store before rendering, so direct URLs and cross-application menu navigation cannot execute a page with stale application context.
+- Refreshing tenant navigation reconciles open and persisted tabs against the newly installed route set; an invalid active tab falls back to the application launcher. Tabs from revoked grants or a previous tenant are never retained as navigable UI state.
 
 ## Data
 
