@@ -38,3 +38,15 @@ func TestCompareConsoleEndpointsRejectsMissingService(t *testing.T) {
 		t.Fatalf("error = %v, want missing service", err)
 	}
 }
+
+func TestCheckChartRuntimeVariables(t *testing.T) {
+	t.Parallel()
+	services := map[string]int{"identity": 18081, "service-registry": 18092}
+	if err := checkChartRuntimeVariables(services, "PLATFORM_IDENTITY_URL: value\nPLATFORM_SERVICE_REGISTRY_URL: value\n"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	err := checkChartRuntimeVariables(services, "PLATFORM_IDENTITY_URL: value\n")
+	if err == nil || !strings.Contains(err.Error(), "PLATFORM_SERVICE_REGISTRY_URL") {
+		t.Fatalf("error = %v, want missing registry variable", err)
+	}
+}

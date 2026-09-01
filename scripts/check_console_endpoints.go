@@ -37,7 +37,29 @@ func main() {
 	if err := compareConsoleEndpoints(composeEndpoints, consoleEndpoints); err != nil {
 		consoleEndpointFail("%v", err)
 	}
+	chartContents, err := os.ReadFile("deploy/platform-gitops/charts/platform-console/templates/configmap.yaml")
+	if err != nil {
+		consoleEndpointFail("read console Helm configuration: %v", err)
+	}
+	if err := checkChartRuntimeVariables(composeEndpoints, string(chartContents)); err != nil {
+		consoleEndpointFail("%v", err)
+	}
 	fmt.Printf("console endpoint invariants: %d service endpoints passed\n", len(composeEndpoints))
+}
+
+func checkChartRuntimeVariables(compose map[string]int, chart string) error {
+	services := make([]string, 0, len(compose))
+	for service := range compose {
+		services = append(services, service)
+	}
+	sort.Strings(services)
+	for _, service := range services {
+		variable := "PLATFORM_" + strings.ToUpper(strings.ReplaceAll(service, "-", "_")) + "_URL:"
+		if !strings.Contains(chart, variable) {
+			return fmt.Errorf("console Helm configuration is missing %s", variable)
+		}
+	}
+	return nil
 }
 
 func parseComposeHTTPEndpoints(contents string) (map[string]int, error) {
