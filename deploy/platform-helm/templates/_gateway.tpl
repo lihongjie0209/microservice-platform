@@ -42,7 +42,7 @@ spec:
         paths:
           {{- get $gateway "paths" | default (list "/*") | toYaml | nindent 10 }}
         methods:
-          {{- get $gateway "methods" | default (list "POST") | toYaml | nindent 10 }}
+          {{- get $gateway "methods" | default (list "GET" "POST" "OPTIONS") | toYaml | nindent 10 }}
       {{- if ne (toString (get $security "enabled")) "false" }}
       plugins:
         - name: client-control

@@ -1,5 +1,11 @@
 # Reusable Lessons
 
+## 2026-09-02: POST-only business APIs still require gateway GET and OPTIONS methods
+
+- Symptom: service handlers correctly used POST+JSON, but APISIX allowed only POST, so browsers could not complete CORS preflight and standard JWKS, health, Swagger document, and Swagger asset GET requests never reached their handlers.
+- Root cause: the business API verb convention was applied to the entire external protocol surface, including standards-mandated discovery and browser transport requests.
+- Prevention: gateway method allowlists include GET, POST, and OPTIONS; business routers still expose only POST for domain APIs, while GET remains limited to explicit standards endpoints and OPTIONS is handled by the service CORS middleware. Assert all three verbs in Helm render tests.
+
 ## 2026-09-02: console development endpoints must track the authoritative Compose ports
 
 - Symptom: the application-split console compiled and its API adapters were correct, but the default development runtime configuration sent Identity, Tenant, Authorization, and Application requests to obsolete ports and omitted Swagger entirely.

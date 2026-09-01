@@ -80,7 +80,7 @@ gateway:
   ingressClassName: apisix
   servicePort: http
   paths: ["/*"]
-  methods: [POST]
+  methods: [GET, POST, OPTIONS]
   security:
     enabled: true
     maxBodySizeMB: 1

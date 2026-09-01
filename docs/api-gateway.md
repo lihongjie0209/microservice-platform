@@ -70,6 +70,8 @@ DNS Provider 必须按实际供应商配置 cert-manager DNS-01 solver。平台�
 
 共享 `ApisixRoute` 默认启用三项边缘保护：`client-control` 将请求体限制为 1 MiB，`limit-req` 按 APISIX 看到的 `remote_addr` 执行每秒 100 请求、burst 50 的单实例入口限流，`response-rewrite` 写入 `nosniff`、拒绝 iframe、严格 Referrer Policy 和一年 HSTS。服务仍保留自身的 Redis 分布式业务限流、Content-Type/CORS 校验和安全响应头作为纵深防御。生产 LoadBalancer 必须保留真实来源地址，只有明确配置可信代理链后才能改用转发头作为限流键。
 
+公开路由允许 `POST`、CORS 预检所需的 `OPTIONS`，以及健康探针、JWKS、Swagger 文档/静态资源等标准协议端点所需的 `GET`。业务 handler 仍统一只注册 POST+JSON；开放 GET 网关方法不会把不存在的业务 GET 接口变为可用接口，具体路径与认证继续由服务端路由控制。
+
 ## 前端入口
 
 平台控制台默认使用 `console.<environment-domain>`，统一 Swagger 使用 `swagger-service.<environment-domain>`。业务服务可保留独立子域名以便 API 调试和第三方集成；浏览器页面优先通过控制台 BFF/明确的服务 API 调用，避免把内部 gRPC 或管理端口暴露到公网。
