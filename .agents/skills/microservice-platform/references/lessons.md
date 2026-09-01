@@ -688,3 +688,9 @@
 - Symptom: running standalone Prettier on console files rewrote the established quote and Vue formatting style, after which ESLint reported hundreds of `prettier/prettier` warnings.
 - Root cause: the console's authoritative formatting configuration is composed through its ESLint preset and is not equivalent to an unqualified standalone Prettier invocation.
 - Prevention: format touched console files with `pnpm exec eslint --fix <files>` (or the repository lint-fix command), then run `pnpm lint`; do not invoke bare Prettier unless its repository configuration has been explicitly verified.
+
+## 2026-09-02: console views are an automatic route discovery boundary
+
+- Symptom: adding an application-scoped workspace component under `src/views` silently generated a global `/platform/workspace` route during build.
+- Root cause: Soybean's route plugin treats files under `src/views` as route sources, even when the component is intended to be mounted only by a dynamic application route.
+- Prevention: keep reusable or dynamically scoped shell components under `src/components` or `src/apps`; reserve `src/views` for intentional generated routes, and inspect generated route/type diffs after every build.

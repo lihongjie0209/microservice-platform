@@ -80,6 +80,8 @@
 ## Frontend
 
 - The console is application-first: the launcher lists every application granted to the selected tenant, but the authenticated shell mounts routes, side navigation, breadcrumbs, tabs, and menu search for exactly one selected application. Platform-wide administration is itself a separately granted platform application; never flatten menus from multiple applications into one workspace.
+- Every selected application receives a console-owned overview route under its application namespace. It may summarize only the application's already authorized published navigation and remains usable when no business menu has been published; business pages and default routes still come from application-service.
+- External application menus accept and open only absolute HTTP(S) URLs without embedded user information. application-service enforces this at the write boundary and the console fails closed again for legacy catalog data.
 
 ## Testing
 
