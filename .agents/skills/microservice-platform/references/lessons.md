@@ -652,3 +652,9 @@
 - Symptom: an application page submitted a selected application filter, but a caller could bypass the page and query another application directly; tenant-wide search visibility could then expose documents from an ungranted application.
 - Root cause: UI scope was mistaken for authorization evidence, and the type-ahead endpoint did not even carry the same filter as the full query.
 - Prevention: every application-aware query and suggestion contract carries the same explicit scope, the backend verifies all requested application grants in one bounded batch, and by-ID reads authorize the application derived from persisted data. UI selection narrows results but never grants access.
+
+## 2026-09-02: a component allow-list must also enforce application ownership
+
+- Symptom: dynamic menu configuration could reference any registered component key, so a menu owned by one application could accidentally mount a privileged page owned by another application.
+- Root cause: page resolution checked only whether the component key was globally known, not whether its namespace matched the route's authoritative application code.
+- Prevention: resolve dynamic pages with both the component key and application code, require an exact namespace match, and cover cross-application rejection with a unit test. Keep backend component values declarative and never evaluate them as import paths.
