@@ -130,6 +130,7 @@
 - `platform-bootstrap` 使用 Cobra/Viper 和声明式清单，通过 application-service 的 POST+JSON API 幂等创建/更新 17 个平台应用、41 个页面菜单、不可变菜单发布版本及初始租户授权
 - CLI 支持 flag > `PLATFORM_BOOTSTRAP_*` 环境变量 > 可选配置文件 > 默认值、JSON 输出和 Shell 补全；镜像内置二进制与清单，可通过受限 Kubernetes Job 重复执行
 - 默认收敛不会删除清单外应用或菜单；破坏性 prune 必须是未来显式、可审计的操作，不得混入启动流程
+- 应用启动器通过批量导航接口一次获取最多 100 个已授权应用的发布菜单；服务端一次校验当前租户授权，并安全过滤已撤销、未发布或已删除的应用，避免浏览器按应用产生 N+1 请求
 
 ### 11. dictionary-service
 
