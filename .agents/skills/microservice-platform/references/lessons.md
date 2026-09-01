@@ -802,3 +802,9 @@
 - Symptom: a UI split uploads into bounded parts but computed SHA-256 with `Blob.arrayBuffer()` first, so the entire large file was still copied into browser memory.
 - Root cause: network chunking and client-side preprocessing were reviewed independently even though both participate in the same memory budget.
 - Prevention: use a maintained incremental hash implementation with fixed-size slices, bound concurrent part uploads, abort failed server sessions, and unit-test exact byte ranges and worker partitioning. Require bucket CORS to expose `ETag` before enabling browser multipart completion.
+
+## Scaffold authentication screens are not delivered capabilities
+
+- Symptom: the console exposed demo credentials plus SMS login, registration, and password-reset screens even though only password login had a backend contract; some unsupported screens displayed success without making a request.
+- Root cause: upstream scaffold modules were treated as product features instead of being reconciled against the platform's authoritative identity-service capabilities.
+- Prevention: default credential fields to empty, expose only contract-backed authentication modes, and make unsupported route parameters fall back safely. Add a UI only after its verification, rate limiting, audit, session, and abuse-prevention backend is implemented and tested.

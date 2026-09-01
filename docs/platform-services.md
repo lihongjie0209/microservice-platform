@@ -22,6 +22,7 @@
 - JWT Access Token、Refresh Token、JWKS 与密钥轮换
 - 服务账号和 Client Credentials
 - 登录防爆破、会话撤销和设备会话
+- 已登录用户可校验当前密码后原子更新 Argon2id 凭证；保留当前会话、撤销其他有效会话，并在同一事务写入密码变更 Outbox 事件
 - 后续对接 OIDC、LDAP、企业微信等身份源
 
 不负责角色权限规则，避免认证与授权强耦合。
