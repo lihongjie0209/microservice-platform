@@ -742,3 +742,9 @@
 - Symptom: a frontend permission selector could reuse an administrative list endpoint by sending either the selected tenant ID or `__platform__`, even though route middleware authorized only the caller's Token scope and did not bind the body field.
 - Root cause: possession of a management permission in one namespace was confused with authority to choose another namespace in request data.
 - Prevention: expose a current-principal lookup API that validates the selected tenant against JWT claims, derives the membership or global-user subject server-side, authorizes the exact derived namespace, and queries only that namespace. Apply the same persisted-or-derived scope binding to every browser-facing read and mutation; never trust tenant, subject, or platform markers merely because they were valid JSON.
+
+## 2026-09-02: Vue component option props may require mutable arrays
+
+- Symptom: ESLint and unit tests passed for an `ElSegmented` scope selector, but `vue-tsc` rejected a readonly tuple created with `as const` because the component Prop expects mutable `Option[]`.
+- Root cause: literal narrowing and component assignment compatibility were treated as the same concern; a readonly tuple narrows values but cannot be assigned to a mutable third-party Prop.
+- Prevention: export an explicitly typed mutable array such as `Array<{ label: string; value: Scope }>` when passing options to Element Plus, and run `pnpm typecheck` after UI component changes rather than relying on ESLint alone.
