@@ -592,3 +592,9 @@
 - Symptom: unary business RPCs were centrally authorized, but a server-streaming discovery/watch method would bypass the unary interceptor entirely.
 - Root cause: the shared authorization SDK exposed only a unary server interceptor, and service integration treated that as complete gRPC coverage.
 - Prevention: inventory unary and streaming methods separately, apply both shared unary and stream authorization interceptors, include every business stream in the resolver table, and add an exhaustive resolver test plus denial/outage classification tests.
+
+## 2026-09-01: transport E2E tests must stub centralized decisions
+
+- Symptom: expanding authorization from mutations to every business RPC made a service-local Testcontainers E2E test fail with `Unavailable` before reaching its own domain assertion.
+- Root cause: the old fixture relied on unprotected read/provider methods and configured no authorization client; complete enforcement correctly introduced an outbound decision boundary.
+- Prevention: service-local E2E tests start an in-process authorization gRPC stub and register it through the normal named outbound configuration; never require authorization-service to run, and keep exhaustive resolver unit tests so the E2E stub tests wiring rather than policy ownership.
