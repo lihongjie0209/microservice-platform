@@ -22,6 +22,26 @@ printf '%s\n' "$development_output" | grep -q 'kind: ApisixTls'
 printf '%s\n' "$development_output" | grep -q 'ingressClassName: "apisix-dev"'
 printf '%s\n' "$development_output" | grep -q 'namespace: default'
 
+external_secret_output=$(helm template gateway-security "$chart_dir" \
+  --set enabled=true \
+  --set baseDomain=aaa.com \
+  --set environmentLabel=dev \
+  --set issuer.email=platform@example.com \
+  --set issuer.eabKeyID=test-key-id \
+  --set 'issuer.solvers[0].dns01.cloudflare.apiTokenSecretRef.name=zerossl-dns' \
+  --set 'issuer.solvers[0].dns01.cloudflare.apiTokenSecretRef.key=api-token' \
+  --set externalSecrets.enabled=true \
+  --set externalSecrets.eabRemoteKey=platform/development/zerossl-eab \
+  --set externalSecrets.dnsRemoteKey=platform/development/dns)
+
+[ "$(printf '%s\n' "$external_secret_output" | grep -c 'kind: ExternalSecret')" -eq 2 ]
+printf '%s\n' "$external_secret_output" | grep -q 'key: platform/development/zerossl-eab'
+printf '%s\n' "$external_secret_output" | grep -q 'key: platform/development/dns'
+printf '%s\n' "$external_secret_output" | grep -q 'name: zerossl-eab'
+printf '%s\n' "$external_secret_output" | grep -q 'key: secret'
+printf '%s\n' "$external_secret_output" | grep -q 'name: zerossl-dns'
+printf '%s\n' "$external_secret_output" | grep -q 'key: api-token'
+
 production_output=$(helm template gateway-security "$chart_dir" \
   --set enabled=true \
   --set baseDomain=aaa.com \
