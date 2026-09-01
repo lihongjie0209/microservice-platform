@@ -47,6 +47,9 @@ if printf '%s\n' "$identity_output" | grep -q 'kind: Job'; then
 fi
 printf '%s\n' "$identity_output" | grep -q 'kind: ApisixRoute'
 printf '%s\n' "$identity_output" | grep -q '"identity-service.dev.aaa.com"'
+printf '%s\n' "$identity_output" | grep -q 'name: client-control'
+printf '%s\n' "$identity_output" | grep -q 'name: limit-req'
+printf '%s\n' "$identity_output" | grep -q 'name: response-rewrite'
 printf '%s\n' "$identity_output" | grep -q 'kubernetes.io/metadata.name: ingress-apisix-development'
 printf '%s\n' "$identity_output" | grep -q 'platform.swagger/enabled: "true"'
 printf '%s\n' "$identity_output" | grep -q 'APP_EVENT_BUS_STREAM_NAME: "PLATFORM_EVENTS"'

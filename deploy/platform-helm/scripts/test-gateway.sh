@@ -21,6 +21,25 @@ development_output=$(helm template gateway-test "$consumer_chart" \
 printf '%s\n' "$development_output" | grep -q '"identity-service.dev.aaa.com"'
 printf '%s\n' "$development_output" | grep -q 'ingressClassName: "apisix-dev"'
 printf '%s\n' "$development_output" | grep -q 'resolveGranularity: endpoints'
+printf '%s\n' "$development_output" | grep -q 'name: client-control'
+printf '%s\n' "$development_output" | grep -q 'max_body_size: 1'
+printf '%s\n' "$development_output" | grep -q 'name: limit-req'
+printf '%s\n' "$development_output" | grep -q 'rate: 100'
+printf '%s\n' "$development_output" | grep -q 'rejected_code: 429'
+printf '%s\n' "$development_output" | grep -q 'name: response-rewrite'
+printf '%s\n' "$development_output" | grep -q 'X-Content-Type-Options: nosniff'
+
+security_disabled_output=$(helm template gateway-test "$consumer_chart" \
+  --set name=identity-service \
+  --set namespace=platform-development \
+  --set gateway.enabled=true \
+  --set gateway.baseDomain=aaa.com \
+  --set gateway.environmentLabel=dev \
+  --set gateway.security.enabled=false)
+if printf '%s\n' "$security_disabled_output" | grep -q 'name: limit-req'; then
+  echo "explicitly disabled gateway security plugins unexpectedly rendered" >&2
+  exit 1
+fi
 
 production_output=$(helm template gateway-test "$consumer_chart" \
   --set name=identity-service \

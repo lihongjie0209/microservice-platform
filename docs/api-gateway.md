@@ -63,10 +63,12 @@ DNS Provider 必须按实际供应商配置 cert-manager DNS-01 solver。平台�
 ## 路由与安全边界
 
 - 对外 HTTP 业务接口继续使用 POST + JSON；`/live`、`/ready`、JWKS、OpenAPI 等标准端点按各自协议保留 GET。
-- APISIX 负责 TLS、Host/Path 路由、CORS、安全响应头、外部限流、请求体上限、真实客户端 IP 和灰度流量。
+- APISIX 负责 TLS、Host/Path 路由、安全响应头、外部限流、请求体上限、真实客户端 IP 保留和灰度流量；按服务白名单生成的 CORS 策略继续由后端统一中间件执行。
 - 服务自身仍验证 JWT/PSK、权限码、租户上下文和幂等键。网关认证属于第一道防线，不能成为服务绕过认证的理由。
 - 默认只暴露前端需要的 HTTP 端口。gRPC 端口保持 ClusterIP 内网访问；确需外部 gRPC 时单独评审 TLS/mTLS、域名和 L4/L7 路由。
 - 自动生成的 Host 为 `<service>.<environment-domain>`，允许通过 `gateway.hostname` 显式覆盖，但禁止一个 Host 同时属于多个环境。
+
+共享 `ApisixRoute` 默认启用三项边缘保护：`client-control` 将请求体限制为 1 MiB，`limit-req` 按 APISIX 看到的 `remote_addr` 执行每秒 100 请求、burst 50 的单实例入口限流，`response-rewrite` 写入 `nosniff`、拒绝 iframe、严格 Referrer Policy 和一年 HSTS。服务仍保留自身的 Redis 分布式业务限流、Content-Type/CORS 校验和安全响应头作为纵深防御。生产 LoadBalancer 必须保留真实来源地址，只有明确配置可信代理链后才能改用转发头作为限流键。
 
 ## 前端入口
 

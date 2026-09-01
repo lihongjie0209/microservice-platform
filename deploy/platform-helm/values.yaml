@@ -29,6 +29,15 @@ gateway:
   servicePort: http
   paths: ["/*"]
   methods: [POST]
+  security:
+    enabled: true
+    maxBodySizeMB: 1
+    rateLimit: {rate: 100, burst: 50}
+    headers:
+      X-Content-Type-Options: nosniff
+      X-Frame-Options: DENY
+      Referrer-Policy: no-referrer
+      Strict-Transport-Security: max-age=31536000; includeSubDomains
 swaggerDiscovery:
   enabled: false
   path: /swagger/doc.json

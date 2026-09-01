@@ -21,6 +21,9 @@ the upstream current as Pods are added, removed, or marked unready.
 */}}
 {{- define "platform.apisixRoute" -}}
 {{- $gateway := .Values.gateway | default dict -}}
+{{- $security := get $gateway "security" | default dict -}}
+{{- $rateLimit := get $security "rateLimit" | default dict -}}
+{{- $securityHeaders := get $security "headers" | default (dict "X-Content-Type-Options" "nosniff" "X-Frame-Options" "DENY" "Referrer-Policy" "no-referrer" "Strict-Transport-Security" "max-age=31536000; includeSubDomains") -}}
 {{- if get $gateway "enabled" }}
 apiVersion: apisix.apache.org/v2
 kind: ApisixRoute
@@ -40,6 +43,27 @@ spec:
           {{- get $gateway "paths" | default (list "/*") | toYaml | nindent 10 }}
         methods:
           {{- get $gateway "methods" | default (list "POST") | toYaml | nindent 10 }}
+      {{- if ne (toString (get $security "enabled")) "false" }}
+      plugins:
+        - name: client-control
+          enable: true
+          config:
+            max_body_size: {{ get $security "maxBodySizeMB" | default 1 }}
+        - name: limit-req
+          enable: true
+          config:
+            key: remote_addr
+            key_type: var
+            rate: {{ get $rateLimit "rate" | default 100 }}
+            burst: {{ get $rateLimit "burst" | default 50 }}
+            rejected_code: 429
+        - name: response-rewrite
+          enable: true
+          config:
+            headers:
+              set:
+                {{- $securityHeaders | toYaml | nindent 16 }}
+      {{- end }}
       backends:
         - serviceName: {{ .Values.name }}
           servicePort: {{ get $gateway "servicePort" | default "http" }}
