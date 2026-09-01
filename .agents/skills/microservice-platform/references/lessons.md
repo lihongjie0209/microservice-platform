@@ -826,3 +826,9 @@
 - Symptom: the console's logout menu removed session storage but left the identity-service session and refresh token valid until expiry.
 - Root cause: explicit user logout reused the same local reset function as automatic handling for invalid credentials, so no server-side revocation occurred.
 - Prevention: separate explicit logout from local reset, revoke the authenticated session first, and always clear local state in a finally-style boundary. Keep 401 interceptors on local reset only to avoid recursive logout requests, and test both successful revocation and network failure.
+
+## Refresh single flight must not cache completed success
+
+- Symptom: the console kept a resolved successful refresh Promise for one extra second and did not mark replayed requests, so a revoked session could reuse stale success and repeatedly retry an unauthenticated request.
+- Root cause: request coalescing, result caching, and retry limiting were conflated; a completed Boolean was treated like an in-flight operation.
+- Prevention: share only the pending refresh Promise and clear it in `finally`, attach a one-retry marker to the original request config, and model authentication failure as ignore/refresh/reset. If the replay is rejected, clear authentication immediately. Unit-test concurrency, rejection recovery, and the second-failure transition.
