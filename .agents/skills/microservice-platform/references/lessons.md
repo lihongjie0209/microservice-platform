@@ -736,3 +736,9 @@
 - Symptom: once authorization-service protected its own role and permission management routes, a newly created tenant had no role capable of creating the first role, producing a circular authorization deadlock.
 - Root cause: platform administrator bootstrap existed, but tenant ownership was persisted only in tenant-service and never projected into the authorization domain.
 - Prevention: consume the authoritative tenant-created event with a durable, transactional, idempotent projection; create only a reserved tenant-local wildcard role bound to the event's owner membership, bump the policy version, and leave all other members unprivileged. Never solve this by disabling self-authorization in production or querying tenant tables directly.
+
+## 2026-09-02: request-body scope is not authenticated scope
+
+- Symptom: a frontend permission selector could reuse an administrative list endpoint by sending either the selected tenant ID or `__platform__`, even though route middleware authorized only the caller's Token scope and did not bind the body field.
+- Root cause: possession of a management permission in one namespace was confused with authority to choose another namespace in request data.
+- Prevention: expose a current-principal lookup API that validates the selected tenant against JWT claims, derives the membership or global-user subject server-side, authorizes the exact derived namespace, and queries only that namespace. Apply the same persisted-or-derived scope binding to every browser-facing read and mutation; never trust tenant, subject, or platform markers merely because they were valid JSON.
