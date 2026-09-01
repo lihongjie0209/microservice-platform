@@ -239,11 +239,13 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 
 ### import-service
 
+- 按 `tenant_id + application_id` 管理数据集访问和异步导入任务，所有页面与内部管理接口通过 application-service 校验租户应用授权
 - 聚合注册中心中的 Import Provider 能力，提供数据集分页搜索与列定义页面接口
 - 管理上传、异步校验、错误报告、人工确认、批量应用、取消、重试和任务查询
 - CSV、JSONL、XLSX 使用有界批次解析，规范化数据和错误报告限制临时文件大小并存入 S3/MinIO
 - 业务服务实现中央 `platform.import.v1.ImportProviderService`，导入服务不生成领域专用 Client，也不读取其他服务 Schema
-- 任务状态通过数据库原子 claim 与事务 Outbox 驱动 JetStream durable consumer，批次应用携带稳定幂等键
+- 任务、幂等键、对象路径、Worker claim、Provider 批次请求和事件 Envelope 保留同一应用归属；任务状态通过数据库原子 claim 与事务 Outbox 驱动 JetStream durable consumer，批次应用携带稳定幂等键
+- 历史任务无法推断真实应用时保持空归属且不向应用 API 暴露；升级时取消未完成任务，待运营侧权威回填后再恢复访问
 - 结果到期由 Cron 清理对象并写入过期事件；所有用户变更使用审计主体和版本号乐观锁
 
 ### webhook-service
