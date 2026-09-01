@@ -12,6 +12,7 @@ spec:
           # Replace baseDomain before enabling the console applications.
           - {environment: development, profile: development, cluster: "https://kubernetes.default.svc", namespace: platform-development, gatewayNamespace: ingress-apisix-development, ingressClass: apisix-dev, environmentLabel: dev, production: "false", baseDomain: "", imageTag: v1.4.0}
           - {environment: testing, profile: testing, cluster: "https://kubernetes.default.svc", namespace: platform-testing, gatewayNamespace: ingress-apisix-testing, ingressClass: apisix-test, environmentLabel: test, production: "false", baseDomain: "", imageTag: v1.4.0}
+          - {environment: staging, profile: staging, cluster: "https://kubernetes.default.svc", namespace: platform-staging, gatewayNamespace: ingress-apisix-staging, ingressClass: apisix-staging, environmentLabel: staging, production: "false", baseDomain: "", imageTag: v1.4.0}
           - {environment: production, profile: production, cluster: "https://kubernetes.default.svc", namespace: platform-production, gatewayNamespace: ingress-apisix-production, ingressClass: apisix-prod, environmentLabel: "", production: "true", baseDomain: "", imageTag: v1.4.0}
   template:
     metadata:

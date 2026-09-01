@@ -32,6 +32,18 @@ spec:
                   production: "false"
                   baseDomain: ""
                   imageTag: v0.1.0
+                - environment: staging
+                  # Staging uses production validation and secret requirements;
+                  # only its namespace, credentials and external domain differ.
+                  profile: production
+                  cluster: https://kubernetes.default.svc
+                  namespace: platform-staging
+                  gatewayNamespace: ingress-apisix-staging
+                  ingressClass: apisix-staging
+                  environmentLabel: staging
+                  production: "false"
+                  baseDomain: ""
+                  imageTag: v0.1.0
                 - environment: production
                   profile: production
                   cluster: https://kubernetes.default.svc

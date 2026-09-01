@@ -15,10 +15,10 @@ image_repository=$("$yq_binary" -r '.spec.template.spec.source.helm.parameters[]
 
 [ "$repository" = "https://github.com/lihongjie0209/microservice-platform.git" ]
 [ "$chart_path" = "deploy/platform-gitops/charts/platform-console" ]
-[ "$environment_count" -eq 3 ]
+[ "$environment_count" -eq 4 ]
 [ "$image_repository" = "{{ .imageTag }}" ]
 
-for environment in development testing production; do
+for environment in development testing staging production; do
   count=$("$yq_binary" -r ".spec.generators[0].list.elements[] | select(.environment == \"$environment\") | .environment" "$applicationset" | wc -l)
   [ "$count" -eq 1 ]
 done
