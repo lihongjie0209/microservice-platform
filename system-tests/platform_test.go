@@ -14,11 +14,6 @@ import (
 	"os"
 	"testing"
 	"time"
-
-	identityv1 "github.com/lihongjie0209/platform-protos/gen/go/platform/identity/v1"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/metadata"
 )
 
 type response struct {
@@ -76,7 +71,7 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	}
 	decodeBody(t, createdTenant, &tenantResult)
 	tenantID := tenantResult.Tenant.ID
-	tokens.AccessToken = issueTenantToken(t, ctx, serviceURL("IDENTITY_GRPC", "127.0.0.1:19081"), tokens.AccessToken, user.ID, tenantID, tenantResult.OwnerMembership.ID)
+	tokens.AccessToken = selectTenantToken(t, ctx, tenantURL, tokens.AccessToken, tenantID)
 	waitImportDataset(t, ctx, importURL, tokens.AccessToken, tenantID, "billing.plans")
 	planCode := "system-plan-" + suffix
 	createdImport := post(t, ctx, importURL+"/api/v1/imports/create", tokens.AccessToken, map[string]any{"tenant_id": tenantID, "provider_service": "billing-service", "dataset_code": "billing.plans", "format": "csv", "filename": "plans.csv", "idempotency_key": "system-import-" + suffix})
@@ -293,22 +288,19 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/import-service")
 }
 
-func issueTenantToken(t *testing.T, ctx context.Context, target, token, userID, tenantID, membershipID string) string {
+func selectTenantToken(t *testing.T, ctx context.Context, tenantURL, token, tenantID string) string {
 	t.Helper()
-	connection, err := grpc.NewClient(target, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		t.Fatal(err)
+	response := post(t, ctx, tenantURL+"/api/v1/tenants/select", token, map[string]any{"tenant_id": tenantID})
+	var result struct {
+		AccessToken  string `json:"access_token"`
+		TenantID     string `json:"tenant_id"`
+		MembershipID string `json:"membership_id"`
 	}
-	defer connection.Close()
-	callCtx := metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+token, "x-request-id", "system-test-tenant-token")
-	result, err := identityv1.NewIdentityServiceClient(connection).IssueTenantToken(callCtx, &identityv1.IssueTenantTokenRequest{UserId: userID, TenantId: tenantID, MembershipId: membershipID})
-	if err != nil {
-		t.Fatalf("issue tenant token: %v", err)
+	decodeBody(t, response, &result)
+	if result.AccessToken == "" || result.TenantID != tenantID || result.MembershipID == "" {
+		t.Fatalf("select tenant returned invalid scope: %+v", result)
 	}
-	if result.GetAccessToken() == "" {
-		t.Fatal("issue tenant token returned an empty token")
-	}
-	return result.GetAccessToken()
+	return result.AccessToken
 }
 
 func waitWorkflowCompleted(t *testing.T, ctx context.Context, baseURL, token, tenantID, instanceID string) {

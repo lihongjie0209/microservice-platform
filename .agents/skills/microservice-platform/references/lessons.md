@@ -700,3 +700,9 @@
 - Symptom: the console remembered a selected tenant and immediately called application-service, but the login token had no trusted tenant/membership claims and was correctly denied; the internal token RPC also accepted caller-supplied membership scope from ordinary users.
 - Root cause: UI selection state was confused with authenticated server-side scope, and issuing a one-off access token would not have survived refresh.
 - Prevention: validate membership in tenant-service, restrict identity token issuance to trusted services, pass the existing session ID in the shared contract, atomically persist session scope before returning the token, and serialize client scope changes. Self-service tenant listing must bind the requested user to the authenticated principal.
+
+## 2026-09-02: module upgrades must finish with tidy
+
+- Symptom: local tests, race, vet, lint, and builds passed after a shared Proto upgrade, while CI failed its module consistency step because `go.sum` still contained checksums for the superseded Proto version.
+- Root cause: `go get` added the new module version but did not remove every now-unused checksum; the local gate omitted the same `go mod tidy && git diff` assertion used by CI.
+- Prevention: after every Go dependency version change, run `go mod tidy`, verify `git diff --exit-code -- go.mod go.sum` after a second tidy, then run the service gates before pushing.
