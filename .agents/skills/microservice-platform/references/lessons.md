@@ -1,5 +1,11 @@
 # Reusable Lessons
 
+## 2026-09-02: console development endpoints must track the authoritative Compose ports
+
+- Symptom: the application-split console compiled and its API adapters were correct, but the default development runtime configuration sent Identity, Tenant, Authorization, and Application requests to obsolete ports and omitted Swagger entirely.
+- Root cause: the frontend runtime template checked environment-variable coverage, while the concrete development configuration was neither checked for every service key nor compared when Compose ports changed.
+- Prevention: treat Compose as the local endpoint authority, update `public/platform-config.js` with port changes, require every typed platform service key in both the development config and container template, and run `pnpm check:runtime-config` in CI.
+
 ## 2026-09-02: service control-plane authentication must fail closed when PSK routing is missing
 
 - Symptom: dictionary Provider lifecycle RPCs were excluded from member RBAC because they were designed for PSK callers, but a missing PSK route pattern caused generic authentication to accept an ordinary user JWT instead.
