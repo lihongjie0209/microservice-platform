@@ -1,5 +1,11 @@
 # Reusable Lessons
 
+## 2026-09-02: authorization scope zero values must never decide ownership implicitly
+
+- Symptom: global application catalog, menu, and tenant-grant management requirements omitted `Scope`, so Go's zero value silently evaluated them in the selected tenant namespace and a tenant wildcard could expose platform operations.
+- Root cause: resource/action coverage tests asserted only that a requirement existed, not that its authorization namespace matched domain ownership; one list endpoint was also reused for tenant consumption and platform administration.
+- Prevention: set `ScopePlatform` or `ScopePrincipal` explicitly for every cross-scope route, test the scope classification, and split tenant self-service reads from platform management APIs whenever they require different subjects or target-tenant rules.
+
 ## 2026-09-01: frontend JSON summaries need transport-specific DTOs
 
 - Symptom: audit before/after JSON appeared as base64 strings in the frontend even though the stored payload was valid JSON.
