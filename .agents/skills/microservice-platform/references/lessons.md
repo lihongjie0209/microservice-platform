@@ -616,3 +616,9 @@
 - Symptom: directly invoking Prettier rewrote Vue and TypeScript files with default double quotes, while the repository ESLint/Prettier integration required single quotes and reported a large formatting diff.
 - Root cause: the standalone formatter did not load the same effective rules as the project's lint command.
 - Prevention: use `pnpm lint:fix` for platform-console formatting, then run `pnpm typecheck` and `pnpm lint`; do not assume a globally familiar formatter command has the repository's effective configuration.
+
+## 2026-09-01: contract consistency checks must not generate into the worktree
+
+- Symptom: a transient remote Swagger download failure interrupted parallel generation and left temporary `.swagger.json` files; the next consistency check snapshotted those artifacts and reported a false drift after the generator cleaned them.
+- Root cause: the read-only consistency check generated directly into the authoritative `src/service/contracts` directory before comparing a snapshot.
+- Prevention: the generator accepts an isolated output directory, and the consistency check generates entirely under a temporary directory before diffing it against the committed contracts. Failed or concurrent generation must never mutate the worktree.
