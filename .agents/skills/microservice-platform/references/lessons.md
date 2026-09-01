@@ -604,3 +604,9 @@
 - Symptom: expanding authorization from mutations to every business RPC made a service-local Testcontainers E2E test fail with `Unavailable` before reaching its own domain assertion.
 - Root cause: the old fixture relied on unprotected read/provider methods and configured no authorization client; complete enforcement correctly introduced an outbound decision boundary.
 - Prevention: service-local E2E tests start an in-process authorization gRPC stub and register it through the normal named outbound configuration; never require authorization-service to run, and keep exhaustive resolver unit tests so the E2E stub tests wiring rather than policy ownership.
+
+## 2026-09-01: batched events must not borrow scope from the first item
+
+- Symptom: a usage ingestion batch could contain several tenant/application pairs, while its single Outbox envelope used the first item's scope and exposed unrelated facts to a scoped consumer.
+- Root cause: batch atomicity was mistaken for a single authorization and event-routing boundary.
+- Prevention: validate and authorize every distinct scope once, group successfully inserted records by authoritative tenant/application scope inside the transaction, and publish one envelope per group; retain a unit regression that decodes every envelope and compares all payload item scopes with its metadata.

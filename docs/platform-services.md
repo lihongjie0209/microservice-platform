@@ -190,7 +190,8 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 
 ### metering-service
 
-- 已实现计量器定义、批量用量采集、追加式调整和按小时/日/月聚合查询
+- 计量器定义是平台级目录；批量用量采集、追加式调整和按小时/日/月聚合查询统一按 `tenant_id + application_id` 隔离，并通过 application-service 校验租户应用授权
+- 同一批次允许包含多个租户/应用，但事务 Outbox 必须按租户/应用拆分事件，禁止用首条记录的作用域代表整个批次
 - HTTP 页面接口使用 POST+JSON，内部调用使用中央 `platform.metering.v1` gRPC 契约
 - 用量写入以 event ID 幂等，事务内同时写事实与 Outbox，并发布 MeterChanged/UsageRecorded 事件
 - 查询在 PostgreSQL/MySQL 内完成 JSON 维度过滤、聚合和结果分页；PostgreSQL/Kingbase 明细表按时间分区
