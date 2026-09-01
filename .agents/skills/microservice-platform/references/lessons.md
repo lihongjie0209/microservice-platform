@@ -658,3 +658,15 @@
 - Symptom: dynamic menu configuration could reference any registered component key, so a menu owned by one application could accidentally mount a privileged page owned by another application.
 - Root cause: page resolution checked only whether the component key was globally known, not whether its namespace matched the route's authoritative application code.
 - Prevention: resolve dynamic pages with both the component key and application code, require an exact namespace match, and cover cross-application rejection with a unit test. Keep backend component values declarative and never evaluate them as import paths.
+
+## 2026-09-02: pin generated API contracts in the URL path
+
+- Symptom: consecutive contract-consistency checks alternated between old and new Swagger output even though the source URL carried a revision query parameter.
+- Root cause: the raw source path still referenced the mutable `main` branch; query parameters did not guarantee that every CDN edge resolved the same Git commit.
+- Prevention: put an immutable commit SHA in the raw GitHub URL path, regenerate once from that artifact, and run the consistency check twice. Never treat a cache-busting query as a version pin.
+
+## 2026-09-02: do not weaken package install policy for embedded API docs
+
+- Symptom: adding `swagger-ui-dist` to the console pulled an indirect package with an install script that the repository supply-chain policy rejected.
+- Root cause: the same Swagger UI distribution was already served by swagger-service, but was unnecessarily introduced as a second frontend dependency.
+- Prevention: reuse the fixed-version assets from the configured, HTTPS-validated swagger-service origin and keep the install-script deny policy intact. Unit-test asset URL derivation and JWT request injection.

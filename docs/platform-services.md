@@ -119,7 +119,7 @@
 
 ### 9. swagger-service
 
-负责聚合所有服务的 OpenAPI 文档并提供统一 Swagger UI。开发环境使用静态服务清单；Kubernetes 环境通过只读 Service Informer 自动发现带 `platform.swagger/enabled=true` 标签与注解的服务，缓存最后一次有效文档，单个服务故障不影响目录和其他文档。
+负责聚合所有服务的 OpenAPI 文档并提供统一 Swagger UI。开发环境使用静态服务清单；Kubernetes 环境通过只读 Service Informer 自动发现带 `platform.swagger/enabled=true` 标签与注解的服务，缓存最后一次有效文档，单个服务故障不影响目录和其他文档。控制台的 `swagger-center` 通过受保护的 POST+JSON API 获取服务目录与文档，复用当前 JWT，并直接渲染服务托管的固定版本 Swagger UI 资源，无需 iframe 二次登录。
 
 ### 10. application-service
 
