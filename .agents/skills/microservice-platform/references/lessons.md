@@ -670,3 +670,9 @@
 - Symptom: adding `swagger-ui-dist` to the console pulled an indirect package with an install script that the repository supply-chain policy rejected.
 - Root cause: the same Swagger UI distribution was already served by swagger-service, but was unnecessarily introduced as a second frontend dependency.
 - Prevention: reuse the fixed-version assets from the configured, HTTPS-validated swagger-service origin and keep the install-script deny policy intact. Unit-test asset URL derivation and JWT request injection.
+
+## 2026-09-02: optional application columns need caller-specific read rules
+
+- Symptom: audit records correctly allowed an empty application for tenant/platform events, but the same optional query filter let a user omit `application_id` and read every application's records in the tenant.
+- Root cause: persistence optionality was copied directly into the user-facing read contract without distinguishing interactive users from service-level compliance callers.
+- Prevention: require and verify application scope for user query/export, authorize Get from the record's persisted application, and reserve empty/tenant-wide reads for explicitly authorized service identities. Keep ingestion service-authorized so a revoked grant does not prevent immutable history from being recorded.
