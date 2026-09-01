@@ -622,3 +622,9 @@
 - Symptom: a transient remote Swagger download failure interrupted parallel generation and left temporary `.swagger.json` files; the next consistency check snapshotted those artifacts and reported a false drift after the generator cleaned them.
 - Root cause: the read-only consistency check generated directly into the authoritative `src/service/contracts` directory before comparing a snapshot.
 - Prevention: the generator accepts an isolated output directory, and the consistency check generates entirely under a temporary directory before diffing it against the committed contracts. Failed or concurrent generation must never mutate the worktree.
+
+## 2026-09-01: budget MySQL composite indexes in bytes before migrations ship
+
+- Symptom: PostgreSQL integration passed, but MySQL rejected an application-scope migration because its `utf8mb4` composite key exceeded InnoDB's 3072-byte limit.
+- Root cause: adding another broadly sized identifier to inherited unique and lookup indexes was reviewed by column count rather than worst-case encoded bytes.
+- Prevention: give identifiers genuine domain bounds, keep lookup indexes to the selective query prefix, never use collision-prone prefix uniqueness for business keys, and add a unit regression that calculates the worst-case byte budget for every changed composite index.
