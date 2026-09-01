@@ -796,3 +796,9 @@
 - Symptom: adding a small SQL-shape regression test replaced an existing repository test file and silently removed unrelated coverage.
 - Root cause: the target path was assumed to be new without checking the worktree or repository history first.
 - Prevention: resolve the target with `rg --files` or `test -e` before an Add File patch; when it exists, inspect and append with a scoped update, then review commit deletion statistics before pushing.
+
+## Browser multipart upload must also stream its checksum
+
+- Symptom: a UI split uploads into bounded parts but computed SHA-256 with `Blob.arrayBuffer()` first, so the entire large file was still copied into browser memory.
+- Root cause: network chunking and client-side preprocessing were reviewed independently even though both participate in the same memory budget.
+- Prevention: use a maintained incremental hash implementation with fixed-size slices, bound concurrent part uploads, abort failed server sessions, and unit-test exact byte ranges and worker partitioning. Require bucket CORS to expose `ETag` before enabling browser multipart completion.
