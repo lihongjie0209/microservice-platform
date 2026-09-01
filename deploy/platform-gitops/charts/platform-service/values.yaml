@@ -79,8 +79,9 @@ gateway:
   hostname: ""
   ingressClassName: apisix
   servicePort: http
-  paths: ["/*"]
-  methods: [GET, POST, OPTIONS]
+  paths: ["/api/*"]
+  methods: [POST, OPTIONS]
+  standardGetPaths: ["/swagger/*", "/swagger-assets/*", "/.well-known/*"]
   security:
     enabled: true
     maxBodySizeMB: 1

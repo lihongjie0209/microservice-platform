@@ -47,7 +47,13 @@ if printf '%s\n' "$identity_output" | grep -q 'kind: Job'; then
 fi
 printf '%s\n' "$identity_output" | grep -q 'kind: ApisixRoute'
 printf '%s\n' "$identity_output" | grep -q '"identity-service.dev.aaa.com"'
+printf '%s\n' "$identity_output" | grep -q -- '- /api/\*'
 printf '%s\n' "$identity_output" | grep -q -- '- OPTIONS'
+printf '%s\n' "$identity_output" | grep -q -- '- /.well-known/\*'
+if printf '%s\n' "$identity_output" | grep -q -- '/metrics'; then
+  echo "internal metrics endpoint unexpectedly rendered in an external route" >&2
+  exit 1
+fi
 printf '%s\n' "$identity_output" | grep -q 'name: client-control'
 printf '%s\n' "$identity_output" | grep -q 'name: limit-req'
 printf '%s\n' "$identity_output" | grep -q 'name: response-rewrite'

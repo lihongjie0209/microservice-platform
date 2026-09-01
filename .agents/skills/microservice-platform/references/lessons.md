@@ -778,3 +778,9 @@
 - Symptom: ESLint and unit tests passed for an `ElSegmented` scope selector, but `vue-tsc` rejected a readonly tuple created with `as const` because the component Prop expects mutable `Option[]`.
 - Root cause: literal narrowing and component assignment compatibility were treated as the same concern; a readonly tuple narrows values but cannot be assigned to a mutable third-party Prop.
 - Prevention: export an explicitly typed mutable array such as `Array<{ label: string; value: Scope }>` when passing options to Element Plus, and run `pnpm typecheck` after UI component changes rather than relying on ESLint alone.
+
+## Standard GET routes must be path-scoped at the gateway
+
+- Symptom: enabling GET for JWKS and Swagger on a catch-all external route also exposed metrics, health probes, and potentially pprof.
+- Root cause: the HTTP method exception was widened on `/*` instead of being coupled to the exact standard endpoint paths.
+- Prevention: split business and standards route groups, allow GET/HEAD only on an explicit path allow-list, keep internal operational endpoints excluded, and assert rendered routes never contain `/metrics`.

@@ -21,9 +21,18 @@ development_output=$(helm template gateway-test "$consumer_chart" \
 printf '%s\n' "$development_output" | grep -q '"identity-service.dev.aaa.com"'
 printf '%s\n' "$development_output" | grep -q 'ingressClassName: "apisix-dev"'
 printf '%s\n' "$development_output" | grep -q 'resolveGranularity: endpoints'
-printf '%s\n' "$development_output" | grep -q -- '- GET'
+printf '%s\n' "$development_output" | grep -q -- '- /api/\*'
 printf '%s\n' "$development_output" | grep -q -- '- POST'
 printf '%s\n' "$development_output" | grep -q -- '- OPTIONS'
+printf '%s\n' "$development_output" | grep -q -- '- /swagger/\*'
+printf '%s\n' "$development_output" | grep -q -- '- /swagger-assets/\*'
+printf '%s\n' "$development_output" | grep -q -- '- /.well-known/\*'
+printf '%s\n' "$development_output" | grep -q -- '- GET'
+printf '%s\n' "$development_output" | grep -q -- '- HEAD'
+if printf '%s\n' "$development_output" | grep -q -- '/metrics'; then
+  echo "internal metrics endpoint unexpectedly rendered in an external route" >&2
+  exit 1
+fi
 printf '%s\n' "$development_output" | grep -q 'name: client-control'
 printf '%s\n' "$development_output" | grep -q 'max_body_size: 1'
 printf '%s\n' "$development_output" | grep -q 'name: limit-req'
