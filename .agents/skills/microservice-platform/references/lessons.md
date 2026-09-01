@@ -191,6 +191,12 @@
 - Symptom: MySQL 8.4 rejected `ALTER TABLE ... ADD TEXT NOT NULL DEFAULT ''` while adding an ABAC condition to an existing table.
 - Root cause: unlike ordinary VARCHAR columns, TEXT default support is restricted and version/mode dependent.
 - Prevention: preserve TEXT for unbounded domain strings, add the column nullable, backfill existing rows, then alter it to NOT NULL; verify the upgrade migration on the supported MySQL Testcontainer.
+## Migration version numbers are repository-global within a dialect
+
+- Symptom: Testcontainers and startup migration failed before executing SQL with `duplicate migration file`, while unit tests and integration compile-only checks passed.
+- Root cause: a new migration reused an existing numeric prefix under a different descriptive filename; `golang-migrate` keys files by version and direction, not by the full name.
+- Prevention: inspect the complete target migration directory before choosing a version and keep a fast unit test that asserts exactly one up/down pair per version for every supported dialect.
+
 ## Generated consistency checks must compare pre/post generation, not the Git baseline
 
 - Symptom: `contracts-check` and `swagger-check` fail for correct, newly generated files whenever the repository has intentional uncommitted work.
