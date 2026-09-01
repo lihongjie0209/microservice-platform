@@ -44,6 +44,8 @@ jobs:
         run: make compose-check
       - name: Validate authorization scopes
         run: make authorization-invariants-check
+      - name: Validate menu permissions
+        run: make menu-permission-invariants-check
       - name: Run platform journey
         run: make ci-system-test
       - name: Show service logs on failure

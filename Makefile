@@ -23,7 +23,7 @@ SERVICE_DIR = services/$(SERVICE)
 	service-migrate-down service-dev-up service-dev-down service-dev-logs \
 	platform-bootstrap-build platform-bootstrap-apply \
 	build test test-integration ci-test-integration lint swagger swagger-check verify \
-	delivery-check compose-check loop-failure-check integration-policy-check event-bus-check event-reliability-check contract-ownership-check api-invariants-check authorization-invariants-check database-invariants-check infra-up infra-down infra-logs infra-status dev-up dev-down dev-logs system-test ci-system-test clean clean-tools
+	delivery-check compose-check loop-failure-check integration-policy-check event-bus-check event-reliability-check contract-ownership-check api-invariants-check authorization-invariants-check menu-permission-invariants-check database-invariants-check infra-up infra-down infra-logs infra-status dev-up dev-down dev-logs system-test ci-system-test clean clean-tools
 
 help:
 	@echo "Workspace commands:"
@@ -40,6 +40,7 @@ help:
 	@echo "  make swagger-check          Regenerate and verify service OpenAPI documents"
 	@echo "  make database-invariants-check  Verify database/schema/migration conventions"
 	@echo "  make authorization-invariants-check  Verify every business permission declares its scope"
+	@echo "  make menu-permission-invariants-check  Match menu permission codes and scopes to service requirements"
 	@echo "  make verify                 Run contracts, unit tests, vet and OpenAPI checks"
 	@echo "  make delivery-check        Lint the shared Helm library chart"
 	@echo "  make compose-check         Validate the local Compose environment"
@@ -162,7 +163,7 @@ swagger: services-swagger
 
 swagger-check: services-swagger-check
 
-verify: contracts-check sdk-test services-test services-vet services-swagger-check delivery-check compose-check loop-failure-check integration-policy-check event-bus-check event-reliability-check contract-ownership-check api-invariants-check authorization-invariants-check database-invariants-check
+verify: contracts-check sdk-test services-test services-vet services-swagger-check delivery-check compose-check loop-failure-check integration-policy-check event-bus-check event-reliability-check contract-ownership-check api-invariants-check authorization-invariants-check menu-permission-invariants-check database-invariants-check
 
 loop-failure-check:
 	@if $(MAKE) --no-print-directory services-build SERVICES="missing-service workflow-service" >/dev/null 2>&1; then \
@@ -187,6 +188,10 @@ api-invariants-check:
 authorization-invariants-check:
 	go test scripts/check_authz_invariants.go scripts/check_authz_invariants_test.go
 	go run scripts/check_authz_invariants.go
+
+menu-permission-invariants-check:
+	go test scripts/check_menu_permission_invariants.go scripts/check_menu_permission_invariants_test.go
+	go run scripts/check_menu_permission_invariants.go
 
 database-invariants-check:
 	go test scripts/check_database_invariants.go scripts/check_database_invariants_test.go
