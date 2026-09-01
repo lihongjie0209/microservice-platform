@@ -808,3 +808,9 @@
 - Symptom: the console exposed demo credentials plus SMS login, registration, and password-reset screens even though only password login had a backend contract; some unsupported screens displayed success without making a request.
 - Root cause: upstream scaffold modules were treated as product features instead of being reconciled against the platform's authoritative identity-service capabilities.
 - Prevention: default credential fields to empty, expose only contract-backed authentication modes, and make unsupported route parameters fall back safely. Add a UI only after its verification, rate limiting, audit, session, and abuse-prevention backend is implemented and tested.
+
+## Identity snapshots must clear fields as well as set them
+
+- Symptom: enriching `/me` with optional tenant and profile fields could leave a previous tenant or membership visible after a later response omitted an empty field, because the client merged the partial object into existing state.
+- Root cause: a replacement snapshot was serialized and consumed with patch semantics; `omitempty` and `Object.assign` preserved values that should have been cleared.
+- Prevention: return a stable response shape with explicit empty values and normalize the client snapshot from empty defaults before replacing state. Test transitions where scope-bearing fields disappear, not only where fields are added.
