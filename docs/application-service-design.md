@@ -32,7 +32,7 @@
 
 - 所属应用和 release
 - 父节点、类型（目录/页面/动作/外链）、路由、组件键、图标、排序
-- `permission_code` 只引用 authorization-service 的权限码，不复制角色或策略
+- `permission_code` 只引用 authorization-service 的权限码，不复制角色或策略；`permission_scope` 明确该码在租户 membership 或保留平台用户主体上决策
 - 国际化使用稳定 `i18n_key`，翻译内容可随发布版本维护
 - 使用 materialized path 或 closure table 支持稳定树查询；同级排序建立组合索引
 
@@ -50,7 +50,7 @@
 运行时 API：
 
 - `ListTenantApplications(tenant_id)`：返回租户当前有效应用。
-- `GetPublishedNavigation(application_id, locale)`：返回已发布菜单树和权限码。
+- `GetPublishedNavigation(application_id, locale)`：返回已发布菜单树、权限码及其 `tenant/platform` 决策作用域。
 - `BatchCheckTenantApplications(tenant_id, application_ids)`：供网关或其他内部服务批量判断。
 - 控制台在读取上述租户作用域 API 前，必须先调用 tenant-service 的 `POST /api/v1/tenants/select`。tenant-service 从自身事实源验证当前用户的 active membership，再以可信服务身份请求 identity-service 将 `tenant_id + membership_id` 原子写入当前会话并签发新 access token；刷新 Token 继承会话中的作用域。客户端不得自行提交 membership ID 给 identity-service。
 - `GetMyNavigation` 不建议直接放在领域服务中；由 BFF 先读取有效应用/菜单，再调用 authorization-service 的批量决策，避免 application-service 逐菜单同步调用形成扇出。

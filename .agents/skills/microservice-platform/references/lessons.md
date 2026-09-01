@@ -724,3 +724,9 @@
 - Symptom: a menu permission backed by an ABAC expression referencing `resource_id` or request attributes caused the entire navigation permission batch to fail because those facts do not exist at menu-load time.
 - Root cause: full resource authorization evaluation was reused for coarse navigation visibility.
 - Prevention: navigation decisions admit only unconditional active grants (including unconditional wildcard roles), hide conditional grants conservatively, and let the protected domain operation evaluate ABAC later with authoritative resource facts. Never invent attributes merely to render a menu.
+
+## 2026-09-02: a menu permission code is incomplete without decision scope
+
+- Symptom: a single application workspace mixed tenant administration with platform-level Identity and registry pages, but a bare permission code could be checked only against the selected membership or only against the reserved platform user.
+- Root cause: menu metadata modeled the policy name but omitted the authorization subject namespace in which that policy is evaluated.
+- Prevention: persist and publish `permission_scope` with every protected menu, add it compatibly to the central Proto, derive both subjects exclusively from the JWT, and keep allowed-code sets keyed by `(scope, code)`. Never union platform and tenant results by code alone.
