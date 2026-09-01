@@ -197,6 +197,7 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 ### search-service
 
 - 已实现 OpenSearch 跨域投影、查询、建议、过滤、排序、高亮和聚合
+- 应用内页面将查询与联想固定到当前 `tenant_id + application_id`；后端批量校验所有应用过滤项，按 ID 读取后再次校验文档持久化应用归属
 - 业务服务通过事务 Outbox 发布 SearchDocument 事件；Search 使用 durable JetStream + Inbox 消费，并以 source_version 保证单调幂等
 - JWT tenant、membership 与 authorization-service 角色绑定生成服务端可见性令牌；前端不能提交可信角色
 - 页面 POST+JSON DTO 与中央 gRPC/事件 Proto 分离；批量 gRPC 仅供受保护的重建和回填

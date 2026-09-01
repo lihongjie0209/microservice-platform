@@ -646,3 +646,9 @@
 - Symptom: an application-scope integration test correctly inserted the same tenant/idempotency key for two applications, then the down migration failed while restoring the older tenant-only unique constraint.
 - Root cause: the test mixed forward-schema behavior data with migration reversibility without reconciling rows that cannot exist under the previous schema.
 - Prevention: test the expanded uniqueness rule first, then explicitly remove or reconcile incompatible fixture rows before running down. A production rollback that contracts a uniqueness scope likewise requires an operator-owned data reconciliation step; down migrations must not silently discard business rows.
+
+## 2026-09-02: frontend application filters are not authorization
+
+- Symptom: an application page submitted a selected application filter, but a caller could bypass the page and query another application directly; tenant-wide search visibility could then expose documents from an ungranted application.
+- Root cause: UI scope was mistaken for authorization evidence, and the type-ahead endpoint did not even carry the same filter as the full query.
+- Prevention: every application-aware query and suggestion contract carries the same explicit scope, the backend verifies all requested application grants in one bounded batch, and by-ID reads authorize the application derived from persisted data. UI selection narrows results but never grants access.
