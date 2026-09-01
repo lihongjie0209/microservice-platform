@@ -814,3 +814,9 @@
 - Symptom: enriching `/me` with optional tenant and profile fields could leave a previous tenant or membership visible after a later response omitted an empty field, because the client merged the partial object into existing state.
 - Root cause: a replacement snapshot was serialized and consumed with patch semantics; `omitempty` and `Object.assign` preserved values that should have been cleared.
 - Prevention: return a stable response shape with explicit empty values and normalize the client snapshot from empty defaults before replacing state. Test transitions where scope-bearing fields disappear, not only where fields are added.
+
+## Password limits must use the same unit on both sides
+
+- Symptom: the user creation form accepted passwords with an eight-character rule while identity-service required 12–1024 bytes, so UI validation could approve requests the backend rejected and behaved differently for multibyte text.
+- Root cause: the frontend inherited a scaffold character-count rule instead of sharing the backend contract's UTF-8 byte semantics.
+- Prevention: centralize the console password policy, calculate length with `TextEncoder`, cover ASCII and multibyte examples, and reuse it for initial-password and password-change forms. Backend validation remains authoritative.
