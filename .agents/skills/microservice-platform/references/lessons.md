@@ -4,7 +4,7 @@
 
 - Symptom: the application-split console compiled and its API adapters were correct, but the default development runtime configuration sent Identity, Tenant, Authorization, and Application requests to obsolete ports and omitted Swagger entirely.
 - Root cause: the frontend runtime template checked environment-variable coverage, while the concrete development configuration was neither checked for every service key nor compared when Compose ports changed.
-- Prevention: treat Compose as the local endpoint authority, update `public/platform-config.js` with port changes, require every typed platform service key in both the development config and container template, and run `pnpm check:runtime-config` in CI.
+- Prevention: treat Compose as the local endpoint authority, update `public/platform-config.js` with port changes, require every typed platform service key in both the development config and container template, and run `pnpm check:runtime-config` in frontend CI. Platform CI also checks out the independently versioned console and runs `make console-endpoint-invariants-check` to compare all 20 concrete development ports with Compose.
 
 ## 2026-09-02: service control-plane authentication must fail closed when PSK routing is missing
 
