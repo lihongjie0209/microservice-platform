@@ -6,6 +6,12 @@
 - Root cause: resource/action coverage tests asserted only that a requirement existed, not that its authorization namespace matched domain ownership; one list endpoint was also reused for tenant consumption and platform administration.
 - Prevention: set `ScopePlatform` or `ScopePrincipal` explicitly for every cross-scope route, test the scope classification, and split tenant self-service reads from platform management APIs whenever they require different subjects or target-tenant rules.
 
+## 2026-09-02: a tenant-scoped RBAC decision does not validate request resource ownership
+
+- Symptom: tenant management endpoints authorized the caller's selected membership but then accepted another `tenant_id` or an ID belonging to another tenant in the request, allowing the decision and mutation target to diverge.
+- Root cause: transport authorization and domain ownership were treated as the same check; ID-based methods did not load the persisted tenant before mutating.
+- Prevention: tenant domain methods compare explicit tenant IDs with the trusted JWT claim, load ID-based resources and validate their persisted tenant, allow cross-tenant orchestration only for separately authorized service/system or platform-marked calls, and keep deterministic cross-tenant unit regressions.
+
 ## 2026-09-01: frontend JSON summaries need transport-specific DTOs
 
 - Symptom: audit before/after JSON appeared as base64 strings in the frontend even though the stored payload was valid JSON.
