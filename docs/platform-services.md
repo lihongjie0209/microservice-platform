@@ -125,6 +125,10 @@
 
 负责应用目录、菜单发布版本和租户应用授权。菜单仅引用 authorization-service 的权限码，租户与成员事实仍归 tenant-service。第一阶段不单独拆 menu-service；详细边界见 `application-service-design.md`。
 
+- `platform-bootstrap` 使用 Cobra/Viper 和声明式清单，通过 application-service 的 POST+JSON API 幂等创建/更新 17 个平台应用、41 个页面菜单、不可变菜单发布版本及初始租户授权
+- CLI 支持 flag > `PLATFORM_BOOTSTRAP_*` 环境变量 > 可选配置文件 > 默认值、JSON 输出和 Shell 补全；镜像内置二进制与清单，可通过受限 Kubernetes Job 重复执行
+- 默认收敛不会删除清单外应用或菜单；破坏性 prune 必须是未来显式、可审计的操作，不得混入启动流程
+
 ### 11. dictionary-service
 
 负责静态字典版本和动态业务字典的统一入口。

@@ -676,3 +676,9 @@
 - Symptom: audit records correctly allowed an empty application for tenant/platform events, but the same optional query filter let a user omit `application_id` and read every application's records in the tenant.
 - Root cause: persistence optionality was copied directly into the user-facing read contract without distinguishing interactive users from service-level compliance callers.
 - Prevention: require and verify application scope for user query/export, authorize Get from the record's persisted application, and reserve empty/tenant-wide reads for explicitly authorized service identities. Keep ingestion service-authorized so a revoked grant does not prevent immutable history from being recorded.
+
+## 2026-09-02: registered frontend pages still need first-boot catalog reconciliation
+
+- Symptom: the console had a complete local page registry, but a new platform database returned no applications or published menus, leaving users on an empty application launcher with no route into platform administration.
+- Root cause: frontend component registration was mistaken for application-service catalog data, and there was no repeatable interface-driven bootstrap after migrations.
+- Prevention: maintain a validated declarative application/menu manifest and reconcile it through application-service with an idempotent CLI/Job. Resolve parent IDs from stable menu codes, publish only changed drafts, optionally grant initial tenants, preserve undeclared resources by default, and never seed another service's schema directly.

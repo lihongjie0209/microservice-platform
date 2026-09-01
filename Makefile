@@ -21,6 +21,7 @@ SERVICE_DIR = services/$(SERVICE)
 	service-check service-run service-build service-docker-build service-test service-test-race \
 	service-test-integration service-lint service-fmt service-swagger-check service-migrate-up \
 	service-migrate-down service-dev-up service-dev-down service-dev-logs \
+	platform-bootstrap-build platform-bootstrap-apply \
 	build test test-integration ci-test-integration lint swagger swagger-check verify \
 	delivery-check compose-check loop-failure-check integration-policy-check event-bus-check event-reliability-check contract-ownership-check api-invariants-check database-invariants-check infra-up infra-down infra-logs infra-status dev-up dev-down dev-logs system-test ci-system-test clean clean-tools
 
@@ -42,6 +43,7 @@ help:
 	@echo "  make delivery-check        Lint the shared Helm library chart"
 	@echo "  make compose-check         Validate the local Compose environment"
 	@echo "  make dev-up                Build and start infrastructure plus all P0 services"
+	@echo "  make platform-bootstrap-apply  Reconcile platform applications and menus"
 	@echo "  make system-test           Run the multi-service identity/tenant/auth/audit journey"
 	@echo ""
 	@echo "Single-service commands (SERVICE=$(firstword $(SERVICES))):"
@@ -135,6 +137,12 @@ service-run service-build service-docker-build service-test service-test-race se
 
 service-test-integration: service-check
 	@cd $(SERVICE_DIR) && go test -tags=integration -run '^$$' ./integration/...
+
+platform-bootstrap-build:
+	$(MAKE) -C services/application-service bootstrap-build
+
+platform-bootstrap-apply:
+	$(MAKE) -C services/application-service bootstrap-apply
 
 build: services-build
 
