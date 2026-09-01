@@ -52,6 +52,7 @@
 - `ListTenantApplications(tenant_id)`：返回租户当前有效应用。
 - `GetPublishedNavigation(application_id, locale)`：返回已发布菜单树和权限码。
 - `BatchCheckTenantApplications(tenant_id, application_ids)`：供网关或其他内部服务批量判断。
+- 控制台在读取上述租户作用域 API 前，必须先调用 tenant-service 的 `POST /api/v1/tenants/select`。tenant-service 从自身事实源验证当前用户的 active membership，再以可信服务身份请求 identity-service 将 `tenant_id + membership_id` 原子写入当前会话并签发新 access token；刷新 Token 继承会话中的作用域。客户端不得自行提交 membership ID 给 identity-service。
 - `GetMyNavigation` 不建议直接放在领域服务中；由 BFF 先读取有效应用/菜单，再调用 authorization-service 的批量决策，避免 application-service 逐菜单同步调用形成扇出。
 
 服务间调用必须通过版本化 gRPC 接口。application-service 可通过 tenant-service 校验租户，也应消费租户停用/删除事件维护本地轻量投影，测试时使用进程内 fake 或 bufconn，不依赖 tenant-service 在线。

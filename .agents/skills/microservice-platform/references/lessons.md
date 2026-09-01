@@ -694,3 +694,9 @@
 - Symptom: adding an application-scoped workspace component under `src/views` silently generated a global `/platform/workspace` route during build.
 - Root cause: Soybean's route plugin treats files under `src/views` as route sources, even when the component is intended to be mounted only by a dynamic application route.
 - Prevention: keep reusable or dynamically scoped shell components under `src/components` or `src/apps`; reserve `src/views` for intentional generated routes, and inspect generated route/type diffs after every build.
+
+## 2026-09-02: tenant selection is a session-scope exchange
+
+- Symptom: the console remembered a selected tenant and immediately called application-service, but the login token had no trusted tenant/membership claims and was correctly denied; the internal token RPC also accepted caller-supplied membership scope from ordinary users.
+- Root cause: UI selection state was confused with authenticated server-side scope, and issuing a one-off access token would not have survived refresh.
+- Prevention: validate membership in tenant-service, restrict identity token issuance to trusted services, pass the existing session ID in the shared contract, atomically persist session scope before returning the token, and serialize client scope changes. Self-service tenant listing must bind the requested user to the authenticated principal.
