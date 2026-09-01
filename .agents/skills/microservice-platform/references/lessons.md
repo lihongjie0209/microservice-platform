@@ -1,5 +1,11 @@
 # Reusable Lessons
 
+## 2026-09-02: service control-plane authentication must fail closed when PSK routing is missing
+
+- Symptom: dictionary Provider lifecycle RPCs were excluded from member RBAC because they were designed for PSK callers, but a missing PSK route pattern caused generic authentication to accept an ordinary user JWT instead.
+- Root cause: authorization exclusions expressed the expected credential class only as an operational configuration assumption; the transport had a permissive authentication fallback.
+- Prevention: mark service-only control-plane methods explicitly, require that their configured PSK wildcard matches before credential verification, reject rather than fall back when it does not, and retain HTTP/gRPC unit regressions using an otherwise valid user JWT. Keep human-readable global catalogs separately protected with `ScopePlatform`.
+
 ## 2026-09-02: authorization scope zero values must never decide ownership implicitly
 
 - Symptom: global application catalog, menu, and tenant-grant management requirements omitted `Scope`, so Go's zero value silently evaluated them in the selected tenant namespace and a tenant wildcard could expose platform operations.

@@ -139,6 +139,7 @@
 - 动态 Provider 能力由 service-registry-service 注册、续租、发现和失效隔离
 - 统一 `DictionaryProviderService` 数据面，不生成服务专用 Client，也不跨 schema 查询
 - Provider DNS 白名单、PSK/mTLS、超时、重试、熔断、Redis 缓存、指标和 Trace
+- Provider 注册、心跳和注销在 HTTP/gRPC 上强制使用配置的服务 PSK，禁止降级为用户 JWT；平台级 Provider 目录及其菜单使用 `__platform__` 授权
 - 每个 Provider 实例独立注册；字典网关通过公共 SDK 的缓存、变更流、被动摘除和最后有效快照完成故障恢复
 - 发布和 Provider 变更通过事务 outbox 投递 NATS JetStream
 
