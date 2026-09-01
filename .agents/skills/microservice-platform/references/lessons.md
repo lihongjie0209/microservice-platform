@@ -682,3 +682,9 @@
 - Symptom: the console had a complete local page registry, but a new platform database returned no applications or published menus, leaving users on an empty application launcher with no route into platform administration.
 - Root cause: frontend component registration was mistaken for application-service catalog data, and there was no repeatable interface-driven bootstrap after migrations.
 - Prevention: maintain a validated declarative application/menu manifest and reconcile it through application-service with an idempotent CLI/Job. Resolve parent IDs from stable menu codes, publish only changed drafts, optionally grant initial tenants, preserve undeclared resources by default, and never seed another service's schema directly.
+
+## 2026-09-02: use the console's ESLint formatter configuration
+
+- Symptom: running standalone Prettier on console files rewrote the established quote and Vue formatting style, after which ESLint reported hundreds of `prettier/prettier` warnings.
+- Root cause: the console's authoritative formatting configuration is composed through its ESLint preset and is not equivalent to an unqualified standalone Prettier invocation.
+- Prevention: format touched console files with `pnpm exec eslint --fix <files>` (or the repository lint-fix command), then run `pnpm lint`; do not invoke bare Prettier unless its repository configuration has been explicitly verified.

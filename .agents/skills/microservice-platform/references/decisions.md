@@ -77,6 +77,10 @@
 - Global error codes and transport mappings live in `platform-go`; domain services may define messages/details but must not allocate duplicate numeric codes locally.
 - Reflection-based unary JSON-to-Protobuf invocation shared by scheduler and workflow orchestration lives in `platform-go/dynamicgrpc`. Services provide only an allow-listed, authenticated connection registry; runtime targets and credentials never come from persisted task rows.
 
+## Frontend
+
+- The console is application-first: the launcher lists every application granted to the selected tenant, but the authenticated shell mounts routes, side navigation, breadcrumbs, tabs, and menu search for exactly one selected application. Platform-wide administration is itself a separately granted platform application; never flatten menus from multiple applications into one workspace.
+
 ## Testing
 
 - Every feature has unit coverage.
