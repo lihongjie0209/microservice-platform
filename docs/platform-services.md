@@ -230,9 +230,10 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 
 ### data-export-service
 
-- 管理租户异步导出任务，提供创建、查询、分页、取消、重试和短时下载 URL 的前端 POST+JSON 接口
+- 按 `tenant_id + application_id` 管理异步导出任务，提供创建、查询、分页、取消、重试和短时下载 URL 的前端 POST+JSON 接口，并通过 application-service 校验应用授权
 - 业务服务实现中央 `platform.export.v1.ExportProviderService` 流式协议；导出服务通过注册中心的 `platform.export.provider` 能力发现来源，不生成领域专用 client，也不查询其他服务 Schema
 - CSV、JSONL、XLSX 均以批次流式编码并直接 multipart 上传 S3/MinIO，限制最大行数、字节数和执行时间，记录 SHA-256
+- 幂等键、任务查询、对象路径、Provider 请求和事件 Envelope 均保留相同应用归属，不允许同租户不同应用共享任务或结果
 - 任务请求与成功、失败、取消、重试、过期事件通过事务 Outbox 和 JetStream durable consumer 传递；数据库状态负责原子 claim，重投不会重复执行已结束任务
 - 任务取消/重试使用版本号乐观锁；运行中取消会在进度边界中止并删除不完整对象；到期结果由 Cron 分批删除对象并标记 `expired`
 

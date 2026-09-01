@@ -634,3 +634,9 @@
 - Symptom: enabling application-scoped persistence makes application startup construct a real grant verifier, so an otherwise service-local E2E fixture can fail before serving requests when the named application upstream is absent.
 - Root cause: compile-only integration checks do not exercise the Fx startup lifecycle, and an older fixture enabled the database without modeling the newly required outbound boundary.
 - Prevention: every database-enabled service E2E test supplies an in-process application-service gRPC contract stub through the normal outbound registry, exercises a non-empty tenant/application scope, and asserts that emitted events retain both values. Never require another deployed service.
+
+## 2026-09-02: asynchronous task scope spans every lifecycle boundary
+
+- Symptom: adding an application filter only to an async task list still leaves collisions and cross-application behavior in idempotency lookup, worker claims, object keys, downloads, retries, provider calls, and events.
+- Root cause: application ownership was treated as a presentation filter instead of part of the task identity and execution context.
+- Prevention: for every application-owned async task, carry `application_id` through persistence and unique keys, every user and worker predicate, external storage paths, downstream Provider requests, event metadata and payloads, and stale UI state cleanup. Unknown legacy ownership must be disabled or explicitly backfilled, never guessed.
