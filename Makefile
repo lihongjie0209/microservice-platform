@@ -208,6 +208,7 @@ delivery-check: $(YQ)
 	helm lint deploy/platform-gitops/charts/platform-gateway-security
 	sh deploy/platform-gitops/charts/platform-gateway-security/scripts/test-render.sh
 	YQ=$(YQ) sh deploy/platform-gitops/scripts/test-apisix-applicationset.sh
+	YQ=$(YQ) sh deploy/platform-gitops/scripts/test-gateway-security-applicationset.sh
 	sh deploy/platform-gitops/charts/platform-service/scripts/test-render.sh
 	YQ=$(YQ) sh deploy/platform-gitops/scripts/test-services-applicationset.sh
 	helm lint deploy/platform-gitops/charts/platform-console --set gateway.baseDomain=example.test

@@ -1,0 +1,51 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: platform-gateway-security
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: [missingkey=error]
+  generators:
+    - list:
+        elements:
+          # Fill baseDomain, ACME email and the ZeroSSL EAB key ID before enabling an environment.
+          - {environment: development, cluster: "https://kubernetes.default.svc", namespace: platform-development, ingressClass: apisix-dev, environmentLabel: dev, production: "false", baseDomain: "", email: "", eabKeyID: ""}
+          - {environment: testing, cluster: "https://kubernetes.default.svc", namespace: platform-testing, ingressClass: apisix-test, environmentLabel: test, production: "false", baseDomain: "", email: "", eabKeyID: ""}
+          - {environment: staging, cluster: "https://kubernetes.default.svc", namespace: platform-staging, ingressClass: apisix-staging, environmentLabel: staging, production: "false", baseDomain: "", email: "", eabKeyID: ""}
+          - {environment: production, cluster: "https://kubernetes.default.svc", namespace: platform-production, ingressClass: apisix-prod, environmentLabel: "", production: "true", baseDomain: "", email: "", eabKeyID: ""}
+  template:
+    metadata:
+      name: 'gateway-security-{{ .environment }}'
+      labels: {platform.environment: '{{ .environment }}', platform.component: gateway-security}
+    spec:
+      project: platform
+      source:
+        repoURL: https://github.com/lihongjie0209/microservice-platform.git
+        targetRevision: main
+        path: deploy/platform-gitops/charts/platform-gateway-security
+        helm:
+          releaseName: platform-gateway-security
+          values: |
+            enabled: {{ ne .baseDomain "" }}
+            baseDomain: {{ .baseDomain | quote }}
+            environmentLabel: {{ .environmentLabel | quote }}
+            production: {{ .production }}
+            ingressClassName: {{ .ingressClass | quote }}
+            issuer:
+              email: {{ .email | quote }}
+              eabKeyID: {{ .eabKeyID | quote }}
+              solvers:
+                - dns01:
+                    cloudflare:
+                      apiTokenSecretRef:
+                        name: zerossl-dns
+                        key: api-token
+            externalSecrets:
+              enabled: {{ ne .baseDomain "" }}
+              eabRemoteKey: platform/{{ .environment }}/zerossl-eab
+              dnsRemoteKey: platform/{{ .environment }}/dns
+      destination: {server: '{{ .cluster }}', namespace: '{{ .namespace }}'}
+      syncPolicy:
+        automated: {prune: true, selfHeal: true}
+        syncOptions: [CreateNamespace=true, ServerSideApply=true]
