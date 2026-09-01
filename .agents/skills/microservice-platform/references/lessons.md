@@ -10,7 +10,7 @@
 
 - Symptom: global application catalog, menu, and tenant-grant management requirements omitted `Scope`, so Go's zero value silently evaluated them in the selected tenant namespace and a tenant wildcard could expose platform operations.
 - Root cause: resource/action coverage tests asserted only that a requirement existed, not that its authorization namespace matched domain ownership; one list endpoint was also reused for tenant consumption and platform administration.
-- Prevention: set `ScopePlatform` or `ScopePrincipal` explicitly for every cross-scope route, test the scope classification, and split tenant self-service reads from platform management APIs whenever they require different subjects or target-tenant rules.
+- Prevention: set `ScopePlatform`, `ScopePrincipal`, or an intentional `ScopeTenant` explicitly for every protected route, test the scope classification, and split tenant self-service reads from platform management APIs whenever they require different subjects or target-tenant rules. Run the AST-based `make authorization-invariants-check` in platform CI so inferred map-element literals cannot silently omit the field.
 
 ## 2026-09-02: a tenant-scoped RBAC decision does not validate request resource ownership
 

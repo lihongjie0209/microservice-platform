@@ -42,6 +42,8 @@ jobs:
           git clone --depth=1 "https://github.com/lihongjie0209/service-registry-service.git" "services/service-registry-service"
       - name: Validate Compose
         run: make compose-check
+      - name: Validate authorization scopes
+        run: make authorization-invariants-check
       - name: Run platform journey
         run: make ci-system-test
       - name: Show service logs on failure
