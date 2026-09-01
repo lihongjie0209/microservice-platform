@@ -20,3 +20,8 @@ grep -q 'PLATFORM_DATA_EXPORT_URL: "https://data-export-service.test.example.tes
 grep -q 'PLATFORM_IMPORT_URL: "https://import-service.test.example.test"' "$rendered"
 grep -q 'readOnlyRootFilesystem: true' "$rendered"
 grep -q 'name: prepare-runtime-config' "$rendered"
+grep -q 'name: limit-req' "$rendered"
+grep -q 'rate: 200' "$rendered"
+grep -q 'rejected_code: 429' "$rendered"
+grep -q 'name: response-rewrite' "$rendered"
+grep -q 'Permissions-Policy: camera=(), geolocation=(), microphone=()' "$rendered"

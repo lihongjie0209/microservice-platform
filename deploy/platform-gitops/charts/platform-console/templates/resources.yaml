@@ -65,6 +65,25 @@ spec:
         hosts: [{{ printf "console.%s" (include "platform-console.environmentDomain" .) | quote }}]
         paths: ["/*"]
         methods: [GET, HEAD]
+      plugins:
+        - name: limit-req
+          enable: true
+          config:
+            key: remote_addr
+            key_type: var
+            rate: {{ .Values.gateway.security.rateLimit.rate }}
+            burst: {{ .Values.gateway.security.rateLimit.burst }}
+            rejected_code: 429
+        - name: response-rewrite
+          enable: true
+          config:
+            headers:
+              set:
+                X-Content-Type-Options: nosniff
+                X-Frame-Options: DENY
+                Referrer-Policy: strict-origin-when-cross-origin
+                Permissions-Policy: camera=(), geolocation=(), microphone=()
+                Strict-Transport-Security: max-age=31536000; includeSubDomains
       backends:
         - {serviceName: {{ .Values.name }}, servicePort: http, resolveGranularity: endpoints}
 {{- if .Values.podDisruptionBudget.enabled }}
