@@ -712,3 +712,15 @@
 - Symptom: authenticated users could submit arbitrary `tenant_id`, `subject_id`, and `subject_type` values to generic authorization decision endpoints, making those endpoints an authorization-information oracle even though management routes were protected.
 - Root cause: a service-to-service preview contract was exposed to browser users without replacing caller-supplied subject fields with trusted JWT scope.
 - Prevention: bind interactive decisions to the JWT tenant and membership, permit arbitrary-subject previews only for authenticated service/system callers, and provide a dedicated current-membership permission-code batch endpoint for navigation. Filtered menus improve UX but never replace backend authorization.
+
+## 2026-09-02: tenant token exchange is a client-side commit boundary
+
+- Symptom: after the session token successfully changed from tenant A to tenant B, a later application or permission request could fail while the console still displayed tenant A resources under the tenant B credential.
+- Root cause: token exchange and dependent navigation loading were treated as one ordinary request chain without distinguishing failure before versus after trusted server scope changed.
+- Prevention: serialize tenant changes, record the exchange commit point, preserve the previous context only when exchange itself fails, and fail closed by clearing applications, navigation, and selected application after a post-exchange failure. Cover both branches with a deterministic state-transition unit test.
+
+## 2026-09-02: navigation cannot evaluate resource-dependent ABAC
+
+- Symptom: a menu permission backed by an ABAC expression referencing `resource_id` or request attributes caused the entire navigation permission batch to fail because those facts do not exist at menu-load time.
+- Root cause: full resource authorization evaluation was reused for coarse navigation visibility.
+- Prevention: navigation decisions admit only unconditional active grants (including unconditional wildcard roles), hide conditional grants conservatively, and let the protected domain operation evaluate ABAC later with authoritative resource facts. Never invent attributes merely to render a menu.
