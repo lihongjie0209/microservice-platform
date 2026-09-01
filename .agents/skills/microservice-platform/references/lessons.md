@@ -730,3 +730,9 @@
 - Symptom: a single application workspace mixed tenant administration with platform-level Identity and registry pages, but a bare permission code could be checked only against the selected membership or only against the reserved platform user.
 - Root cause: menu metadata modeled the policy name but omitted the authorization subject namespace in which that policy is evaluated.
 - Prevention: persist and publish `permission_scope` with every protected menu, add it compatibly to the central Proto, derive both subjects exclusively from the JWT, and keep allowed-code sets keyed by `(scope, code)`. Never union platform and tenant results by code alone.
+
+## 2026-09-02: self-authorized policy management needs a tenant bootstrap path
+
+- Symptom: once authorization-service protected its own role and permission management routes, a newly created tenant had no role capable of creating the first role, producing a circular authorization deadlock.
+- Root cause: platform administrator bootstrap existed, but tenant ownership was persisted only in tenant-service and never projected into the authorization domain.
+- Prevention: consume the authoritative tenant-created event with a durable, transactional, idempotent projection; create only a reserved tenant-local wildcard role bound to the event's owner membership, bump the policy version, and leave all other members unprivileged. Never solve this by disabling self-authorization in production or querying tenant tables directly.
