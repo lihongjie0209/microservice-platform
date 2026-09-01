@@ -127,7 +127,7 @@
 
 负责应用目录、菜单发布版本和租户应用授权。菜单仅引用 authorization-service 的权限码，并显式声明 `tenant` 或 `platform` 决策作用域；租户与成员事实仍归 tenant-service。第一阶段不单独拆 menu-service；详细边界见 `application-service-design.md`。
 
-- `platform-bootstrap` 使用 Cobra/Viper 和声明式清单，通过 application-service 的 POST+JSON API 幂等创建/更新 17 个平台应用、41 个页面菜单、不可变菜单发布版本及初始租户授权
+- `platform-bootstrap` 使用 Cobra/Viper 和声明式清单，通过 application-service 的 POST+JSON API 幂等创建/更新 17 个平台应用、42 个页面菜单、不可变菜单发布版本及初始租户授权
 - CLI 支持 flag > `PLATFORM_BOOTSTRAP_*` 环境变量 > 可选配置文件 > 默认值、JSON 输出和 Shell 补全；镜像内置二进制与清单，可通过受限 Kubernetes Job 重复执行
 - 默认收敛不会删除清单外应用或菜单；破坏性 prune 必须是未来显式、可审计的操作，不得混入启动流程
 - 应用启动器通过批量导航接口一次获取最多 100 个已授权应用的发布菜单；服务端一次校验当前租户授权，并安全过滤已撤销、未发布或已删除的应用，避免浏览器按应用产生 N+1 请求
@@ -225,6 +225,7 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 - 套餐和用量价格属于平台级目录，目录读写接口和控制台菜单统一在 `__platform__` 范围授权；订阅、账单、支付尝试和退款统一按 `tenant_id + application_id` 隔离，提供独立 POST+JSON 页面接口与中央 `platform.billing.v1` gRPC 契约
 - 每个租户应用独立维护有效订阅；通过 application-service 校验应用授权，通过 metering-service API 按相同租户/应用获取用量，通过 authorization-service 统一决策套餐管理权限，绝不跨 schema 查询
 - 发票、支付、提供商回调和退款具有持久化幂等边界；所有更新使用版本号乐观锁
+- billing-center 提供独立“支付与退款”工作区：分页查询当前租户应用的支付尝试与退款，幂等发起支付和记录退款；支付方式引用只在提交时发送，不进入浏览器持久状态
 - 下周期换套餐及期末取消由服务内定时任务推进，Redis 分布式锁限制多副本并发
 - 领域事件使用携带租户和应用作用域的公共 Envelope，并通过事务 Outbox 发布到 `PLATFORM_EVENTS`
 

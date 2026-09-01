@@ -784,3 +784,15 @@
 - Symptom: enabling GET for JWKS and Swagger on a catch-all external route also exposed metrics, health probes, and potentially pprof.
 - Root cause: the HTTP method exception was widened on `/*` instead of being coupled to the exact standard endpoint paths.
 - Prevention: split business and standards route groups, allow GET/HEAD only on an explicit path allow-list, keep internal operational endpoints excluded, and assert rendered routes never contain `/metrics`.
+
+## SQL insert shape needs a local deterministic gate
+
+- Symptom: billing refund creation failed in both PostgreSQL and MySQL integration CI because an INSERT listed 16 columns but supplied 17 placeholders.
+- Root cause: the write path had no unit-level shape assertion and was only exercised after a new repository integration scenario was added.
+- Prevention: keep reusable INSERT placeholder lists next to their column lists, assert their counts match in a fast unit test, and retain cross-database Testcontainers coverage for actual execution.
+
+## Verify a supposedly new path before adding a file
+
+- Symptom: adding a small SQL-shape regression test replaced an existing repository test file and silently removed unrelated coverage.
+- Root cause: the target path was assumed to be new without checking the worktree or repository history first.
+- Prevention: resolve the target with `rg --files` or `test -e` before an Add File patch; when it exists, inspect and append with a scoped update, then review commit deletion statistics before pushing.
