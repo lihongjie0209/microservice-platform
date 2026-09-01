@@ -640,3 +640,9 @@
 - Symptom: adding an application filter only to an async task list still leaves collisions and cross-application behavior in idempotency lookup, worker claims, object keys, downloads, retries, provider calls, and events.
 - Root cause: application ownership was treated as a presentation filter instead of part of the task identity and execution context.
 - Prevention: for every application-owned async task, carry `application_id` through persistence and unique keys, every user and worker predicate, external storage paths, downstream Provider requests, event metadata and payloads, and stale UI state cleanup. Unknown legacy ownership must be disabled or explicitly backfilled, never guessed.
+
+## 2026-09-02: migration down fixtures must satisfy the restored invariant
+
+- Symptom: an application-scope integration test correctly inserted the same tenant/idempotency key for two applications, then the down migration failed while restoring the older tenant-only unique constraint.
+- Root cause: the test mixed forward-schema behavior data with migration reversibility without reconciling rows that cannot exist under the previous schema.
+- Prevention: test the expanded uniqueness rule first, then explicitly remove or reconcile incompatible fixture rows before running down. A production rollback that contracts a uniqueness scope likewise requires an operator-owned data reconciliation step; down migrations must not silently discard business rows.
