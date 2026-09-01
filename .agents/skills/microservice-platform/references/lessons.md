@@ -820,3 +820,9 @@
 - Symptom: the user creation form accepted passwords with an eight-character rule while identity-service required 12–1024 bytes, so UI validation could approve requests the backend rejected and behaved differently for multibyte text.
 - Root cause: the frontend inherited a scaffold character-count rule instead of sharing the backend contract's UTF-8 byte semantics.
 - Prevention: centralize the console password policy, calculate length with `TextEncoder`, cover ASCII and multibyte examples, and reuse it for initial-password and password-change forms. Backend validation remains authoritative.
+
+## Clearing browser tokens is not a complete logout
+
+- Symptom: the console's logout menu removed session storage but left the identity-service session and refresh token valid until expiry.
+- Root cause: explicit user logout reused the same local reset function as automatic handling for invalid credentials, so no server-side revocation occurred.
+- Prevention: separate explicit logout from local reset, revoke the authenticated session first, and always clear local state in a finally-style boundary. Keep 401 interceptors on local reset only to avoid recursive logout requests, and test both successful revocation and network failure.
