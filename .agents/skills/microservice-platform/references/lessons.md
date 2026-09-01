@@ -628,3 +628,9 @@
 - Symptom: PostgreSQL integration passed, but MySQL rejected an application-scope migration because its `utf8mb4` composite key exceeded InnoDB's 3072-byte limit.
 - Root cause: adding another broadly sized identifier to inherited unique and lookup indexes was reviewed by column count rather than worst-case encoded bytes.
 - Prevention: give identifiers genuine domain bounds, keep lookup indexes to the selective query prefix, never use collision-prone prefix uniqueness for business keys, and add a unit regression that calculates the worst-case byte budget for every changed composite index.
+
+## 2026-09-02: application verification must remain service-local in E2E tests
+
+- Symptom: enabling application-scoped persistence makes application startup construct a real grant verifier, so an otherwise service-local E2E fixture can fail before serving requests when the named application upstream is absent.
+- Root cause: compile-only integration checks do not exercise the Fx startup lifecycle, and an older fixture enabled the database without modeling the newly required outbound boundary.
+- Prevention: every database-enabled service E2E test supplies an in-process application-service gRPC contract stub through the normal outbound registry, exercises a non-empty tenant/application scope, and asserts that emitted events retain both values. Never require another deployed service.
