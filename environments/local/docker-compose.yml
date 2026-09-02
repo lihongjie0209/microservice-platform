@@ -439,6 +439,7 @@ services:
       identity-service: {condition: service_healthy}
       authorization-service: {condition: service_healthy}
       metering-service: {condition: service_healthy}
+      service-registry-service: {condition: service_healthy}
     environment:
       <<: *platform-env
       APP_DATABASE_SCHEMA: billing

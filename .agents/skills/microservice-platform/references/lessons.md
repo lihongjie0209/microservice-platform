@@ -849,3 +849,8 @@
 - Symptom: a public authentication endpoint worked under the default profile but returned 401 in Compose after a new route was added.
 - Root cause: Viper profile list overlays replace the complete `auth.skip_http_paths` slice instead of merging it, so the Compose override silently omitted newer mandatory public routes.
 - Prevention: keep profile overrides synchronized with the authoritative public-auth route set, assert every mandatory route across concrete profiles, and prefer removing duplicate list overrides when a profile does not intentionally change them.
+## 2026-09-02: health does not prove provider registration readiness
+
+- Symptom: every Compose container was healthy, but the system test could not discover the `billing.plans` import dataset within its bounded wait.
+- Root cause: billing-service published provider metadata asynchronously but did not declare service-registry-service as a healthy startup dependency, so HTTP/gRPC readiness could precede a usable registration snapshot.
+- Prevention: every Compose service that enables registry-backed provider publication waits for service-registry-service health; retain a static Compose invariant and keep consumers tolerant of lease renewal and discovery replay.
