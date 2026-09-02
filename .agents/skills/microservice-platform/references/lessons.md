@@ -1039,3 +1039,9 @@
 - Symptom: typecheck, tests, lint, and build passed after adding a new Element Plus component, but the commit hook rejected an unstaged change in `src/typings/components.d.ts`.
 - Root cause: the Vite auto-import plugin regenerated global component declarations during verification after the initial files had already been staged.
 - Prevention: after the final frontend build or typecheck, inspect the worktree again and include intentional generated declaration changes. Keep the pre-commit diff guard enabled; never discard a generated type update merely to make the tree clean.
+
+## 2026-09-03: one-time secrets must not enter generic idempotency caches
+
+- Symptom: adding a secret-rotation mutation to the normal idempotency allowlist would make retries convenient, but it would also persist the one-time plaintext client secret in Redis for the result TTL.
+- Root cause: generic mutation guidance was applied without classifying the sensitivity and disclosure lifetime of the response body.
+- Prevention: exclude password-reset tokens, client secrets, recovery codes, and similar one-time credentials from generic response-replay middleware. Use cryptographic randomness, store only a slow hash, update with optimistic locking in the same transaction as the audit/outbox record, return plaintext only after commit, and make duplicate or stale submissions fail instead of replaying the secret.
