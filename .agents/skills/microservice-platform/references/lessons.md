@@ -973,3 +973,9 @@
 - Symptom: generated services carried Swagger comments for user CRUD types and operations that the service did not implement, making source review and aggregate API documentation misleading.
 - Root cause: domain-specific sample comments remained in the generic service template after the executable example was reduced to a ping endpoint.
 - Prevention: keep template OpenAPI annotations adjacent to real handlers and remove domain examples when their routes are removed. A template-local unit invariant rejects the stale user operation/type markers so newly generated services cannot reintroduce them.
+
+## 2026-09-02: pinned lint tools may require a newer Go toolchain than the service
+
+- Symptom: service tests, race checks, and vet passed, but `make lint` could not run locally; installing the CI-pinned golangci-lint with `go install` attempted to download a newer Go toolchain and failed before producing the binary.
+- Root cause: the lint release's own build requirement had advanced beyond the service's local Go toolchain, even though the precompiled lint binary could still analyze the service source.
+- Prevention: keep the local lint version identical to CI and install the official precompiled release artifact when its build-time Go requirement is newer than the service toolchain. Never hide the mismatch by downgrading lint, changing CI opportunistically, or skipping the lint gate; verify the installed binary's version before rerunning checks.
