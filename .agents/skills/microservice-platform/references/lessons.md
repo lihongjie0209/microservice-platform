@@ -997,3 +997,9 @@
 - Symptom: the menu catalog published quota read and consume actions even though the console exposed neither operation, while secondary calls such as audit export and service-instance listing had no explicit frontend authorization reference.
 - Root cause: action nodes were inferred from available backend methods instead of tracing actual product flows from UI entry through every called endpoint. This produced both dead permissions and list-authorized pages whose secondary requests failed only after interaction.
 - Prevention: every action node must match a scoped backend Requirement and appear as an explicit frontend permission reference. Gate multi-endpoint flows with `strategy: all`, including catalog/describe/upload prerequisites. Do not publish an action merely because an endpoint exists; internal SDK and service-to-service capabilities remain backend permissions until a product entry point uses them. Enforce both directions in the platform permission invariant.
+
+## 2026-09-02: a bounded page is never a complete business collection
+
+- Symptom: operational tables and selector catalogs silently stopped at 100 records, so older bills, rule versions, webhook deliveries, dictionary values, or provider datasets disappeared as data grew.
+- Root cause: frontend callers embedded `page=1,page_size=100` and treated the response as a complete collection instead of honoring the backend pagination contract.
+- Prevention: give user-facing record tables real server pagination with total state and reset the page whenever filters or scope change. For catalogs that must be complete, collect every reported page with the shared validated pagination helper; for large searchable directories, prefer backend remote search or explicit pagination. Preserve latest-request guards so a slower response from an old application scope cannot overwrite current data.
