@@ -122,6 +122,8 @@ go test -tags=integration -count=1 ./integration/...
 
 Local development must not execute Testcontainers, Docker Compose, or platform system tests. Run unit tests, race tests, vet, lint, generation/config checks, and compile-only checks locally; execute infrastructure-backed integration suites in GitHub CI. Push a coherent change and immediately continue useful development instead of waiting for CI. Revisit queued CI runs opportunistically at task boundaries or idle time and fix failures promptly, adding a deterministic unit regression first whenever possible.
 
+Frontend production bundles must embed the package version, source Git commit, and build time. Container and release workflows pass the immutable commit explicitly because Docker build contexts may not contain `.git`; local builds may fall back to the current checkout. Include this build identity in application-chunk failure telemetry and expose a concise version in the global shell so operators can distinguish stale browser assets from backend failures.
+
 Also generate a fresh service when changing the template/generator. Within each service verify frontend API, gRPC status behavior, outbound client behavior against stubs, event redelivery/idempotency, migration up/down, and shared-database schema isolation. Run platform `system-tests` separately in GitHub CI for multi-service journeys.
 
 ## Maintenance rule
