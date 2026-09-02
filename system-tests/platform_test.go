@@ -167,33 +167,33 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 		t.Fatalf("tenant application grant was not active: %+v", checks)
 	}
 	post(t, ctx, applicationURL+"/api/v1/applications/navigation/get", tokens.AccessToken, map[string]any{"application_id": application.ID})
-	definitionResponse := post(t, ctx, workflowURL+"/api/v1/workflow/definitions/create", tokens.AccessToken, map[string]any{
-		"tenant_id": tenantID, "application_id": application.ID, "key": "system_" + suffix, "name": "System Workflow",
+	definitionResponse := post(t, ctx, workflowURL+"/api/v1/workflow/definitions/create", tokens.AccessToken, scopedPayload(tenantID, application.ID, map[string]any{
+		"key": "system_" + suffix, "name": "System Workflow",
 		"nodes": []map[string]any{{"id": "start", "name": "Start", "type": "start"}, {"id": "end", "name": "End", "type": "end"}},
 		"edges": []map[string]any{{"from_node_id": "start", "to_node_id": "end", "priority": 1}},
-	})
+	}))
 	var definition struct {
 		ID      string `json:"id"`
 		Key     string `json:"key"`
 		Version int64  `json:"version"`
 	}
 	decodeBody(t, definitionResponse, &definition)
-	post(t, ctx, workflowURL+"/api/v1/workflow/definitions/publish", tokens.AccessToken, map[string]any{"id": definition.ID, "tenant_id": tenantID, "expected_version": definition.Version})
-	instanceResponse := post(t, ctx, workflowURL+"/api/v1/workflow/instances/start", tokens.AccessToken, map[string]any{
-		"tenant_id": tenantID, "definition_key": definition.Key, "business_key": "system-" + suffix, "title": "System workflow", "variables_json": map[string]any{}, "idempotency_key": "system-" + suffix,
-	})
+	post(t, ctx, workflowURL+"/api/v1/workflow/definitions/publish", tokens.AccessToken, scopedPayload(tenantID, application.ID, map[string]any{"id": definition.ID, "expected_version": definition.Version}))
+	instanceResponse := post(t, ctx, workflowURL+"/api/v1/workflow/instances/start", tokens.AccessToken, scopedPayload(tenantID, application.ID, map[string]any{
+		"definition_key": definition.Key, "business_key": "system-" + suffix, "title": "System workflow", "variables_json": map[string]any{}, "idempotency_key": "system-" + suffix,
+	}))
 	var instance struct {
 		ID string `json:"id"`
 	}
 	decodeBody(t, instanceResponse, &instance)
-	waitWorkflowCompleted(t, ctx, workflowURL, tokens.AccessToken, tenantID, instance.ID)
+	waitWorkflowCompleted(t, ctx, workflowURL, tokens.AccessToken, tenantID, application.ID, instance.ID)
 	meterCode := "system." + suffix
 	post(t, ctx, meteringURL+"/api/v1/meters/create", tokens.AccessToken, map[string]any{
 		"code": meterCode, "name": "System usage", "unit": "request", "aggregation": "sum", "dimension_keys": []string{"endpoint"},
 	})
 	occurredAt := time.Now().In(time.FixedZone("UTC+8", 8*60*60)).Truncate(time.Second)
 	usageResponse := post(t, ctx, meteringURL+"/api/v1/usage/record", tokens.AccessToken, map[string]any{"events": []map[string]any{
-		{"event_id": "system-usage-" + suffix, "tenant_id": tenantID, "meter_code": meterCode, "quantity": 7, "dimensions": map[string]string{"endpoint": "/system"}, "occurred_at": occurredAt.Format(time.RFC3339), "source_service": "system-test"},
+		{"event_id": "system-usage-" + suffix, "tenant_id": tenantID, "application_id": application.ID, "meter_code": meterCode, "quantity": 7, "dimensions": map[string]string{"endpoint": "/system"}, "occurred_at": occurredAt.Format(time.RFC3339), "source_service": "system-test"},
 	}})
 	var usageResults []struct {
 		Duplicate bool `json:"duplicate"`
@@ -202,10 +202,10 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	if len(usageResults) != 1 || usageResults[0].Duplicate {
 		t.Fatalf("unexpected usage ingestion result: %+v", usageResults)
 	}
-	usageQuery := post(t, ctx, meteringURL+"/api/v1/usage/query", tokens.AccessToken, map[string]any{
-		"tenant_id": tenantID, "meter_code": meterCode, "start_at": occurredAt.Add(-time.Hour).Format(time.RFC3339), "end_at": occurredAt.Add(time.Hour).Format(time.RFC3339),
+	usageQuery := post(t, ctx, meteringURL+"/api/v1/usage/query", tokens.AccessToken, scopedPayload(tenantID, application.ID, map[string]any{
+		"meter_code": meterCode, "start_at": occurredAt.Add(-time.Hour).Format(time.RFC3339), "end_at": occurredAt.Add(time.Hour).Format(time.RFC3339),
 		"dimensions": map[string]string{"endpoint": "/system"}, "granularity": "hour", "page": 1, "page_size": 20,
-	})
+	}))
 	var usagePage struct {
 		Items []struct {
 			Quantity int64 `json:"quantity"`
@@ -239,7 +239,7 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	deadline := time.Now().Add(30 * time.Second)
 	auditProjected := false
 	for time.Now().Before(deadline) {
-		audits := post(t, ctx, auditURL+"/api/v1/audit/records/query", tokens.AccessToken, map[string]any{"tenant_id": tenantID, "page": 1, "page_size": 100})
+		audits := post(t, ctx, auditURL+"/api/v1/audit/records/query", tokens.AccessToken, scopedPayload(tenantID, application.ID, map[string]any{"page": 1, "page_size": 100}))
 		var page struct {
 			Total int64 `json:"total"`
 		}
@@ -253,11 +253,11 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	if !auditProjected {
 		t.Fatal("domain events were not projected into audit-service within 30 seconds")
 	}
-	createdJob := post(t, ctx, schedulerURL+"/api/v1/scheduler/jobs/create", tokens.AccessToken, map[string]any{
+	createdJob := post(t, ctx, schedulerURL+"/api/v1/scheduler/jobs/create", tokens.AccessToken, scopedPayload(tenantID, application.ID, map[string]any{
 		"name": "system-health-" + suffix, "cron_expression": "0 0 0 1 1 *", "timezone": "Asia/Shanghai",
 		"upstream": "audit", "full_method": "/grpc.health.v1.Health/Check", "request_json": `{"service":""}`,
 		"timeout_milliseconds": 5000, "enabled": false,
-	})
+	}))
 	var job struct {
 		ID string `json:"id"`
 	}
@@ -307,11 +307,11 @@ func selectTenantToken(t *testing.T, ctx context.Context, tenantURL, token, tena
 	return result.AccessToken
 }
 
-func waitWorkflowCompleted(t *testing.T, ctx context.Context, baseURL, token, tenantID, instanceID string) {
+func waitWorkflowCompleted(t *testing.T, ctx context.Context, baseURL, token, tenantID, applicationID, instanceID string) {
 	t.Helper()
 	deadline := time.Now().Add(30 * time.Second)
 	for time.Now().Before(deadline) {
-		result := post(t, ctx, baseURL+"/api/v1/workflow/instances/get", token, map[string]any{"tenant_id": tenantID, "id": instanceID})
+		result := post(t, ctx, baseURL+"/api/v1/workflow/instances/get", token, scopedPayload(tenantID, applicationID, map[string]any{"id": instanceID}))
 		var instance struct {
 			Status string `json:"status"`
 		}
