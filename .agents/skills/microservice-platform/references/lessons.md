@@ -961,3 +961,9 @@
 - Symptom: most services authenticated application-grant checks successfully, but the platform journey failed only when it reached workflow-service with `missing or invalid PSK`.
 - Root cause: the deployment invariant enumerated a fixed consumer list that omitted workflow-service, so a healthy target and an unauthenticated client configuration passed static validation.
 - Prevention: whenever a protected capability gains a consumer, add that service to the credential/dependency invariant in the same change. Check healthy dependency ordering, auth type, matching credential, and explicit development plaintext opt-in together.
+
+## 2026-09-02: business validation dependencies are deployment dependencies
+
+- Symptom: metering-service was healthy, but its first usage write returned `application authorization is unavailable` because the application grant check lacked client credentials.
+- Root cause: application grant validation was treated as an internal implementation detail, so metering-service was omitted from both the Compose dependency graph and the authenticated-consumer invariant.
+- Prevention: when a write path performs a remote business validation, model that upstream as an explicit service dependency. Configure its authentication in every environment, verify nested environment decoding in the consumer's unit tests, and include the consumer in deployment credential invariants.
