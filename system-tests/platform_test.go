@@ -331,7 +331,7 @@ func waitSearchDocument(t *testing.T, ctx context.Context, baseURL, token, tenan
 	t.Helper()
 	deadline := time.Now().Add(30 * time.Second)
 	for time.Now().Before(deadline) {
-		encoded, err := json.Marshal(map[string]any{"tenant_id": tenantID, "query": query, "document_types": []string{"application"}, "page": 1, "page_size": 20})
+		encoded, err := json.Marshal(map[string]any{"tenant_id": tenantID, "application_ids": []string{applicationID}, "query": query, "document_types": []string{"application"}, "page": 1, "page_size": 20})
 		if err != nil {
 			t.Fatal(err)
 		}
