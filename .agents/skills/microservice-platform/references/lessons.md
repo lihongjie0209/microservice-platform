@@ -1051,3 +1051,9 @@
 - Symptom: all local tests and the container integration suite passed after upgrading an internal proto module, but CI's `go mod tidy && git diff` gate failed because `go.sum` retained checksums for the replaced pseudo-version.
 - Root cause: dependency downloads and tests prove that the selected module graph builds, but they do not guarantee the committed `go.sum` is the minimal result of `go mod tidy`; a warm local module cache made the stale entries easy to overlook.
 - Prevention: after every internal module or pseudo-version upgrade, run `go mod tidy`, inspect `git diff -- go.mod go.sum`, and repeat the same command with `GOWORK=off` when the service normally lives in a workspace. Commit the complete module-file diff before running final tests, then keep CI's clean-tree module gate authoritative.
+
+## 2026-09-03: local frontend verification must mirror every CI gate
+
+- Symptom: typecheck, lint, unit tests, application boundaries, contract checks, and production build all passed locally, but CI rejected new remote-search calls because `check:bounded-collections` had not been included in the local command.
+- Root cause: verification was assembled from memory instead of reading the authoritative workflow/package scripts, so a repository-specific static invariant was omitted. The new remote searches also expressed their intentionally bounded first page with the same syntax used by accidental collection truncation.
+- Prevention: derive the local frontend gate list from the current CI workflow and run every check after the final edit. Express bounded remote lookup through the shared `remoteSearchPage` helper, which fixes the first page and clamps result size, while keeping direct hard-coded first-page collection requests forbidden.
