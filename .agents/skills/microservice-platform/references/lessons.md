@@ -925,3 +925,15 @@
 - Symptom: production-side dataset validation passed unit tests, but export integration tests began returning 400/503 before creating jobs.
 - Root cause: one fake Provider returned a descriptor without formats or columns, while another test configured no Provider endpoint at all because the old create path only needed identifiers and deferred Provider access until background execution.
 - Prevention: when a consumer moves capability validation earlier, upgrade in-process and integration Providers to expose the same descriptor, scope, formats, and fields as production. Do not add test-only bypasses to runtime validation. Compile integration suites locally and execute their infrastructure-backed behavior in CI.
+
+## 2026-09-02: public query JSON needs a provider-owned schema
+
+- Symptom: the export console could discover datasets, formats, and columns but still required users to hand-write arbitrary query JSON that neither the UI nor the coordinating service could validate.
+- Root cause: Provider discovery described output shape only; each producer's undocumented top-level query properties leaked through `query_json` as an implicit public contract.
+- Prevention: include typed query fields, formats, options, descriptions, and required markers in the Provider descriptor. The coordinating service rejects unknown keys and invalid values before persisting a job, the Provider independently enforces its declared semantics, and the console generates constrained controls from the same immutable contract. Keep raw JSON only for explicitly schemaless domain payloads, never as a substitute for a known cross-service query model.
+
+## 2026-09-02: deployment flags must exist through the complete client configuration path
+
+- Symptom: Compose explicitly opted a development PSK client into plaintext transport, yet the service failed startup with “credentials require TLS” and became unhealthy.
+- Root cause: the service used an older outbound model that neither decoded `tls.allow_insecure` nor forwarded it to the gRPC credential guard; checking the deployment YAML alone proved only that the environment variable existed.
+- Prevention: when adding an authenticated upstream, verify file/environment decoding, production validation, outbound-to-dialer mapping, and deployment values as one path. Unit-test both the production rejection and the final dialer configuration. Compose invariants cover consumer presence and matching credentials, while service-local tests prove that its pinned configuration implementation understands every supplied security flag.
