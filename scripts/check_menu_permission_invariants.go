@@ -15,6 +15,8 @@ import (
 )
 
 var menuPermissionPattern = regexp.MustCompile(`permission_code:\s*([^, }]+).*permission_scope:\s*(tenant|platform)`)
+var actionPermissionPattern = regexp.MustCompile(`type:\s*action.*permission_code:\s*([^, }]+)`)
+var frontendPermissionPattern = regexp.MustCompile(`['"]([a-z][a-z0-9_-]*(?:\.[a-z0-9_-]+)+)['"]`)
 
 type permissionImplementation struct {
 	Code  string
@@ -31,6 +33,17 @@ func main() {
 		menuPermissionFail("parse application manifest: %v", err)
 	}
 	if err := validateMenuPermissions(menus, implementations); err != nil {
+		menuPermissionFail("%v", err)
+	}
+	actions, err := parseActionPermissions("services/application-service/bootstrap/platform-applications.yaml")
+	if err != nil {
+		menuPermissionFail("parse action permissions: %v", err)
+	}
+	frontendPermissions, err := collectFrontendPermissionCodes("frontend/platform-console/src")
+	if err != nil {
+		menuPermissionFail("collect frontend permissions: %v", err)
+	}
+	if err := validateActionPermissionReferences(actions, frontendPermissions); err != nil {
 		menuPermissionFail("%v", err)
 	}
 	fmt.Printf("menu permission invariants: %d menu permissions passed\n", len(menus))
@@ -213,6 +226,62 @@ func parseMenuPermissions(path string) ([]permissionImplementation, error) {
 		}
 	}
 	return result, scanner.Err()
+}
+
+func parseActionPermissions(path string) ([]string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = file.Close() }()
+	result := make([]string, 0)
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		match := actionPermissionPattern.FindStringSubmatch(scanner.Text())
+		if len(match) == 2 {
+			result = append(result, strings.TrimSpace(match[1]))
+		}
+	}
+	return result, scanner.Err()
+}
+
+func collectFrontendPermissionCodes(root string) (map[string]struct{}, error) {
+	result := make(map[string]struct{})
+	err := filepath.Walk(root, func(path string, info os.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if info.IsDir() || (!strings.HasSuffix(path, ".ts") && !strings.HasSuffix(path, ".vue")) {
+			return nil
+		}
+		contents, readErr := os.ReadFile(path)
+		if readErr != nil {
+			return readErr
+		}
+		for _, match := range frontendPermissionPattern.FindAllSubmatch(contents, -1) {
+			result[string(match[1])] = struct{}{}
+		}
+		return nil
+	})
+	return result, err
+}
+
+func validateActionPermissionReferences(actions []string, frontend map[string]struct{}) error {
+	missing := make(map[string]struct{})
+	for _, action := range actions {
+		if _, ok := frontend[action]; !ok {
+			missing[action] = struct{}{}
+		}
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+	codes := make([]string, 0, len(missing))
+	for code := range missing {
+		codes = append(codes, code)
+	}
+	sort.Strings(codes)
+	return fmt.Errorf("action permissions have no frontend reference: %s", strings.Join(codes, ", "))
 }
 
 func validateMenuPermissions(menus, implementations []permissionImplementation) error {

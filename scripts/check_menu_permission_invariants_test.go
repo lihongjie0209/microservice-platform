@@ -51,6 +51,20 @@ func TestDynamicManagementImplementations(t *testing.T) {
 func (h *Handler) authorize(c Context, tenantID, scope, action string) {
 	h.service.AuthorizeUserManagementScope(c, tenantID, scope, "authorization.role", action)
 }
+
+func TestValidateActionPermissionReferences(t *testing.T) {
+	t.Parallel()
+	actions := []string{"file.object.upload", "file.object.delete", "file.object.upload"}
+	frontend := map[string]struct{}{"file.object.upload": {}}
+	err := validateActionPermissionReferences(actions, frontend)
+	if err == nil || !strings.Contains(err.Error(), "file.object.delete") {
+		t.Fatalf("error = %v, want missing delete permission", err)
+	}
+	frontend["file.object.delete"] = struct{}{}
+	if err := validateActionPermissionReferences(actions, frontend); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
 func (h *Handler) create(c Context) { h.authorize(c, "tenant-1", "tenant", "create") }
 func (h *Handler) update(c Context) { h.authorize(c, "tenant-1", "platform", "update") }
 func (h *Handler) ignored(c Context, action string) { h.authorize(c, "tenant-1", "tenant", action) }
