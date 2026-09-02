@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"testing"
 	"time"
 )
@@ -51,6 +52,7 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 		ID string `json:"id"`
 	}
 	decodeBody(t, registered, &user)
+	bootstrapPlatformAdministrator(t, ctx, user.ID)
 	login := post(t, ctx, identityURL+"/api/v1/auth/login", "", map[string]any{"login": "system_" + suffix, "password": "correct horse battery staple"})
 	var tokens struct {
 		AccessToken string `json:"access_token"`
@@ -154,6 +156,7 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 		} `json:"invoice"`
 	}
 	decodeBody(t, generatedInvoice, &invoiceResult)
+	waitExportDataset(t, ctx, exportURL, tokens.AccessToken, tenantID, application.ID, "billing.invoices")
 	createdExport := post(t, ctx, exportURL+"/api/v1/exports/create", tokens.AccessToken, scopedPayload(tenantID, application.ID, map[string]any{
 		"provider_service": "billing-service", "dataset_code": "billing.invoices", "format": "csv",
 		"filename": "invoices.csv", "query": map[string]any{}, "selected_columns": []string{"id", "number"},
@@ -339,6 +342,19 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	getOpenAPISpec(t, ctx, swaggerURL+"/swagger/spec/import-service")
 }
 
+func bootstrapPlatformAdministrator(t *testing.T, ctx context.Context, userID string) {
+	t.Helper()
+	args, err := authorizationBootstrapArgs(userID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	command := exec.CommandContext(ctx, "docker", args...)
+	output, err := command.CombinedOutput()
+	if err != nil {
+		t.Fatalf("bootstrap platform administrator: %v: %s", err, output)
+	}
+}
+
 func selectTenantToken(t *testing.T, ctx context.Context, tenantURL, token, tenantID string) string {
 	t.Helper()
 	response := post(t, ctx, tenantURL+"/api/v1/tenants/select", token, map[string]any{"tenant_id": tenantID})
@@ -443,6 +459,33 @@ func waitImportDataset(t *testing.T, ctx context.Context, baseURL, token, tenant
 		time.Sleep(250 * time.Millisecond)
 	}
 	t.Fatalf("import dataset %s was not discovered within 30 seconds: status=%d response=%+v error=%v", code, lastStatus, lastResult, lastErr)
+}
+
+func waitExportDataset(t *testing.T, ctx context.Context, baseURL, token, tenantID, applicationID, code string) {
+	t.Helper()
+	deadline := time.Now().Add(30 * time.Second)
+	var lastResult response
+	var lastStatus int
+	var lastErr error
+	for time.Now().Before(deadline) {
+		result, statusCode, err := tryPost(ctx, baseURL+"/api/v1/exports/datasets/list", token, scopedPayload(tenantID, applicationID, map[string]any{"search": code, "page": 1, "page_size": 20}))
+		lastResult, lastStatus, lastErr = result, statusCode, err
+		if err == nil && statusCode == http.StatusOK && result.Code == 0 {
+			var page struct {
+				Items []struct {
+					Code string `json:"code"`
+				} `json:"items"`
+			}
+			decodeBody(t, result, &page)
+			for _, item := range page.Items {
+				if item.Code == code {
+					return
+				}
+			}
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+	t.Fatalf("export dataset %s was not discovered within 30 seconds: status=%d response=%+v error=%v", code, lastStatus, lastResult, lastErr)
 }
 
 type importJobStatus struct {

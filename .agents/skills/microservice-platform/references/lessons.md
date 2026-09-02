@@ -913,3 +913,9 @@
 - Symptom: an Import Provider accepted only a dedicated internal PSK, then tried to authorize that synthetic PSK principal through the tenant RBAC service; validation failed as “authorization decision unavailable” before any data was processed.
 - Root cause: transport capability authentication and end-user authorization were stacked mechanically even though the internal Provider RPC is invoked on behalf of an already authorized import/export job. Forwarding the Provider PSK to the decision RPC also cannot coexist with a decision endpoint that must accept browser Bearer credentials.
 - Prevention: classify each internal RPC's trust boundary explicitly. A narrow Provider PSK/mTLS capability may be the authorization for that RPC; in that case omit redundant user RBAC, require the typed tenant/application/job scope, and revalidate ownership in the calling service. Never broaden a shared decision RPC to PSK-only when it also serves user Bearer flows. Unit-test both valid capability access and missing-credential rejection.
+
+## 2026-09-02: platform administration requires an explicit first binding
+
+- Symptom: a newly registered system-test user could administer its tenant but received 403 from platform-scoped billing plan APIs.
+- Root cause: tenant creation correctly bootstrapped only the tenant-owner membership. The reserved platform super-admin role deliberately had no binding, and the journey never invoked the existing audited bootstrap command for its new Identity user.
+- Prevention: keep platform and tenant administration separate. Provision the first platform administrator through the explicit idempotent bootstrap binary (or its Kubernetes Job), never by weakening platform resources to tenant scope or auto-promoting the first registrant. System journeys must invoke that command before exercising platform-scoped APIs and unit-test command construction without a shell.
