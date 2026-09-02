@@ -459,6 +459,7 @@ services:
       authorization-service: {condition: service_healthy}
       metering-service: {condition: service_healthy}
       service-registry-service: {condition: service_healthy}
+      application-service: {condition: service_healthy}
     environment:
       <<: *platform-env
       APP_DATABASE_SCHEMA: billing
@@ -478,6 +479,9 @@ services:
       APP_SERVICE_REGISTRY_INSTANCE_ID: billing-service-local-1
       APP_SERVICE_REGISTRY_ENDPOINT: grpc://billing-service:9090
       APP_SERVICE_REGISTRY_ALLOW_INSECURE: "true"
+      APP_OUTBOUND_GRPC_APPLICATION_AUTH_TYPE: psk
+      APP_OUTBOUND_GRPC_APPLICATION_AUTH_TOKEN: application-dev-psk-000000000000000000
+      APP_OUTBOUND_GRPC_APPLICATION_TLS_ALLOW_INSECURE: "true"
 
   rule-service:
     <<: *platform-service

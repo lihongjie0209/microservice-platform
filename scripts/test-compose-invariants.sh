@@ -53,7 +53,7 @@ if [ -z "$application_psk" ] || [ "$application_psk" != "$import_psk" ]; then
     exit 1
 fi
 
-for consumer_name in audit-service dictionary-service scheduler-service search-service data-export-service; do
+for consumer_name in audit-service billing-service dictionary-service scheduler-service search-service data-export-service; do
     consumer_service=$(awk -v service="$consumer_name" '
         $0 == "  " service ":" { in_service = 1; next }
         in_service && /^  [a-zA-Z0-9_-]+:/ { exit }
