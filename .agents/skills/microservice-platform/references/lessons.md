@@ -1033,3 +1033,9 @@
 - Symptom: application load-policy tests passed, but unrelated navigation and registry tests failed with `ERR_UNKNOWN_FILE_EXTENSION` after the registry statically imported a Vue SFC error component.
 - Root cause: the production registry is also imported by `tsx --test`; Node can execute its TypeScript dependency graph but cannot load `.vue` files without the Vite transform pipeline.
 - Prevention: keep registry and policy dependency graphs executable in plain Node. Implement small shared fallback components in TypeScript with Vue render functions, or inject browser-only components at a boundary not imported by Node tests. Run the complete test command after changing any transitive registry dependency, not only the new focused test.
+
+## 2026-09-03: auto-imported UI components update generated declarations
+
+- Symptom: typecheck, tests, lint, and build passed after adding a new Element Plus component, but the commit hook rejected an unstaged change in `src/typings/components.d.ts`.
+- Root cause: the Vite auto-import plugin regenerated global component declarations during verification after the initial files had already been staged.
+- Prevention: after the final frontend build or typecheck, inspect the worktree again and include intentional generated declaration changes. Keep the pre-commit diff guard enabled; never discard a generated type update merely to make the tree clean.
