@@ -1003,3 +1003,9 @@
 - Symptom: operational tables and selector catalogs silently stopped at 100 records, so older bills, rule versions, webhook deliveries, dictionary values, or provider datasets disappeared as data grew.
 - Root cause: frontend callers embedded `page=1,page_size=100` and treated the response as a complete collection instead of honoring the backend pagination contract.
 - Prevention: give user-facing record tables real server pagination with total state and reset the page whenever filters or scope change. For catalogs that must be complete, collect every reported page with the shared validated pagination helper; for large searchable directories, prefer backend remote search or explicit pagination. Preserve latest-request guards so a slower response from an old application scope cannot overwrite current data.
+
+## 2026-09-02: destructive console actions need a cancellable confirmation boundary
+
+- Symptom: delete, revoke, rotate-secret, replay, cancel, and void buttons could call the backend immediately, while existing Element Plus confirmation cancellation surfaced as rejected promises in the Vue event chain. Some audit reasons were hard-coded instead of entered by the operator.
+- Root cause: each page treated confirmation as incidental UI rather than a shared boundary before an authorized mutation.
+- Prevention: route destructive actions through the shared confirmation/prompt adapters, return without calling the API on cancellation, require a non-empty operator reason where the backend accepts one, and keep backend permission plus optimistic-version checks authoritative. Unit-test accepted and cancelled adapter paths; never replace backend concurrency or authorization enforcement with a dialog.
