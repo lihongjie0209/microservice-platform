@@ -832,3 +832,9 @@
 - Symptom: the console kept a resolved successful refresh Promise for one extra second and did not mark replayed requests, so a revoked session could reuse stale success and repeatedly retry an unauthenticated request.
 - Root cause: request coalescing, result caching, and retry limiting were conflated; a completed Boolean was treated like an in-flight operation.
 - Prevention: share only the pending refresh Promise and clear it in `finally`, attach a one-retry marker to the original request config, and model authentication failure as ignore/refresh/reset. If the replay is rejected, clear authentication immediately. Unit-test concurrency, rejection recovery, and the second-failure transition.
+
+## MySQL TEXT migrations cannot rely on defaults
+
+- Symptom: a migration that added non-null session metadata passed PostgreSQL but failed against the supported MySQL 8.4 container with error 1101 because `TEXT NOT NULL DEFAULT ''` was rejected by its server mode.
+- Root cause: PostgreSQL-style default/backfill semantics were copied to MySQL without accounting for MySQL's TEXT default compatibility rules.
+- Prevention: add MySQL TEXT columns nullable, backfill existing rows explicitly, then change them to NOT NULL. Keep a fast migration-contract test that rejects `TEXT NOT NULL DEFAULT` and retain the real MySQL Testcontainers migration suite in CI.
