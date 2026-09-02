@@ -325,6 +325,9 @@ services:
       APP_MIGRATION_TABLE: application_schema_migrations
       APP_AUTH_JWKS_URL: http://identity-service:8080/.well-known/jwks.json
       APP_AUTH_AUDIENCE: application-service
+      APP_AUTH_PSK_ENABLED: "true"
+      APP_AUTH_PSK_KEY: application-dev-psk-000000000000000000
+      APP_AUTH_PSK_GRPC_METHODS: "[/platform.application.v1.ApplicationService/BatchCheckTenantApplications]"
 
   dictionary-service:
     <<: *platform-service
@@ -505,7 +508,6 @@ services:
       APP_PROVIDER_CLIENT_PSK: registry-dev-psk-00000000000000000000
       APP_PROVIDER_CLIENT_ALLOWED_DNS_SUFFIXES: "-service"
       APP_PROVIDER_CLIENT_ALLOW_INSECURE: "true"
-
   import-service:
     <<: *platform-service
     build: {context: ../../services/import-service, args: {GOPROXY: "${GOPROXY:-https://goproxy.cn,direct}"}}
@@ -514,6 +516,7 @@ services:
       <<: *platform-dependencies
       identity-service: {condition: service_healthy}
       service-registry-service: {condition: service_healthy}
+      application-service: {condition: service_healthy}
       minio-init: {condition: service_completed_successfully}
     environment:
       <<: *platform-env
@@ -537,6 +540,9 @@ services:
       APP_PROVIDER_CLIENT_PSK: registry-dev-psk-00000000000000000000
       APP_PROVIDER_CLIENT_ALLOWED_DNS_SUFFIXES: "-service"
       APP_PROVIDER_CLIENT_ALLOW_INSECURE: "true"
+      APP_OUTBOUND_GRPC_APPLICATION_AUTH_TYPE: psk
+      APP_OUTBOUND_GRPC_APPLICATION_AUTH_TOKEN: application-dev-psk-000000000000000000
+      APP_OUTBOUND_GRPC_APPLICATION_TLS_ALLOW_INSECURE: "true"
 
   swagger-service:
     profiles: [platform]
