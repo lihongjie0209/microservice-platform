@@ -838,3 +838,9 @@
 - Symptom: a migration that added non-null session metadata passed PostgreSQL but failed against the supported MySQL 8.4 container with error 1101 because `TEXT NOT NULL DEFAULT ''` was rejected by its server mode.
 - Root cause: PostgreSQL-style default/backfill semantics were copied to MySQL without accounting for MySQL's TEXT default compatibility rules.
 - Prevention: add MySQL TEXT columns nullable, backfill existing rows explicitly, then change them to NOT NULL. Keep a fast migration-contract test that rejects `TEXT NOT NULL DEFAULT` and retain the real MySQL Testcontainers migration suite in CI.
+
+## Shared policy structs may not be comparable
+
+- Symptom: a regression test failed to compile when it compared two authorization `Requirement` values with `!=`.
+- Root cause: the shared struct contains a map for contextual attributes, so Go deliberately makes the entire value non-comparable even when a test only cares about resource, action, and scope.
+- Prevention: compare the policy fields that define the invariant explicitly, or use a semantic equality helper when context attributes matter; do not assume shared DTOs remain structurally comparable as fields evolve.
