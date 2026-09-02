@@ -844,3 +844,8 @@
 - Symptom: a regression test failed to compile when it compared two authorization `Requirement` values with `!=`.
 - Root cause: the shared struct contains a map for contextual attributes, so Go deliberately makes the entire value non-comparable even when a test only cares about resource, action, and scope.
 - Prevention: compare the policy fields that define the invariant explicitly, or use a semantic equality helper when context attributes matter; do not assume shared DTOs remain structurally comparable as fields evolve.
+## 2026-09-02: profile list overrides replace security defaults
+
+- Symptom: a public authentication endpoint worked under the default profile but returned 401 in Compose after a new route was added.
+- Root cause: Viper profile list overlays replace the complete `auth.skip_http_paths` slice instead of merging it, so the Compose override silently omitted newer mandatory public routes.
+- Prevention: keep profile overrides synchronized with the authoritative public-auth route set, assert every mandatory route across concrete profiles, and prefer removing duplicate list overrides when a profile does not intentionally change them.
