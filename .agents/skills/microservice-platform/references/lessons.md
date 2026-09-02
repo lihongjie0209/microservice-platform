@@ -1045,3 +1045,9 @@
 - Symptom: adding a secret-rotation mutation to the normal idempotency allowlist would make retries convenient, but it would also persist the one-time plaintext client secret in Redis for the result TTL.
 - Root cause: generic mutation guidance was applied without classifying the sensitivity and disclosure lifetime of the response body.
 - Prevention: exclude password-reset tokens, client secrets, recovery codes, and similar one-time credentials from generic response-replay middleware. Use cryptographic randomness, store only a slow hash, update with optimistic locking in the same transaction as the audit/outbox record, return plaintext only after commit, and make duplicate or stale submissions fail instead of replaying the secret.
+
+## 2026-09-03: verify module upgrades against the committed module graph
+
+- Symptom: all local tests and the container integration suite passed after upgrading an internal proto module, but CI's `go mod tidy && git diff` gate failed because `go.sum` retained checksums for the replaced pseudo-version.
+- Root cause: dependency downloads and tests prove that the selected module graph builds, but they do not guarantee the committed `go.sum` is the minimal result of `go mod tidy`; a warm local module cache made the stale entries easy to overlook.
+- Prevention: after every internal module or pseudo-version upgrade, run `go mod tidy`, inspect `git diff -- go.mod go.sum`, and repeat the same command with `GOWORK=off` when the service normally lives in a workspace. Commit the complete module-file diff before running final tests, then keep CI's clean-tree module gate authoritative.
