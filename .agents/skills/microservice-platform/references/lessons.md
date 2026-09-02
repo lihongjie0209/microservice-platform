@@ -979,3 +979,15 @@
 - Symptom: service tests, race checks, and vet passed, but `make lint` could not run locally; installing the CI-pinned golangci-lint with `go install` attempted to download a newer Go toolchain and failed before producing the binary.
 - Root cause: the lint release's own build requirement had advanced beyond the service's local Go toolchain, even though the precompiled lint binary could still analyze the service source.
 - Prevention: keep the local lint version identical to CI and install the official precompiled release artifact when its build-time Go requirement is newer than the service toolchain. Never hide the mismatch by downgrading lint, changing CI opportunistically, or skipping the lint gate; verify the installed binary's version before rerunning checks.
+
+## 2026-09-02: launcher catalog reads must honor both page and batch limits
+
+- Symptom: the application launcher worked for small tenants but silently omitted memberships or grants beyond the first 100 records, and sending every discovered application to one navigation request exceeded the backend's 100-ID batch limit.
+- Root cause: the browser treated a bounded page as a complete catalog and treated a batch endpoint as unbounded; both assumptions happened to hold only for development-sized data.
+- Prevention: aggregate all pages using the response's total/page metadata, reject incomplete or mismatched page sequences, and chunk downstream batch calls at the authoritative endpoint limit without dropping the tail. Unit-test multi-page collection, malformed early termination, and partial final batches.
+
+## 2026-09-02: button authorization must use published scoped action nodes
+
+- Symptom: page menus were filtered through authorization-service, but create, edit, delete, grant, and publish buttons remained visible because the scaffold's unused `userInfo.buttons` array was a separate authorization mechanism with no platform decisions behind it.
+- Root cause: the application manifest described only routable list pages, so the console never requested decisions for operation permissions and shared UI components could not distinguish tenant-scoped from platform-scoped codes.
+- Prevention: publish hidden, non-routable `action` children under their owning page, require each action to reference a real backend permission and a page parent, and retain authorization-service decisions by scope in the platform context. Shared action and CRUD components consume `{scope, codes, strategy}` requirements; target services remain authoritative and enforce the same operation server-side. Clear decisions immediately when tenant scope changes, and never revive a parallel roles/buttons permission source.
