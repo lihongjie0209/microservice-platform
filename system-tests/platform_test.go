@@ -72,9 +72,31 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	decodeBody(t, createdTenant, &tenantResult)
 	tenantID := tenantResult.Tenant.ID
 	tokens.AccessToken = selectTenantToken(t, ctx, tenantURL, tokens.AccessToken, tenantID)
-	waitImportDataset(t, ctx, importURL, tokens.AccessToken, tenantID, "billing.plans")
+	applicationCode := "system-" + suffix
+	applicationResponse := post(t, ctx, applicationURL+"/api/v1/applications/create", tokens.AccessToken, map[string]any{
+		"code": applicationCode, "name": "System Application", "default_route": "home", "metadata_json": map[string]any{},
+	})
+	var application struct {
+		ID      string `json:"id"`
+		Version int64  `json:"version"`
+	}
+	decodeBody(t, applicationResponse, &application)
+	post(t, ctx, applicationURL+"/api/v1/applications/menus/upsert", tokens.AccessToken, map[string]any{
+		"menu": map[string]any{
+			"application_id": application.ID, "code": "home", "type": "page", "name": "Home", "route": "home",
+			"component": applicationCode + ".home", "permission_code": "home.read", "visible": true,
+		},
+		"expected_version": 0,
+	})
+	post(t, ctx, applicationURL+"/api/v1/applications/menus/publish", tokens.AccessToken, map[string]any{
+		"application_id": application.ID, "application_version": application.Version, "comment": "system test",
+	})
+	post(t, ctx, applicationURL+"/api/v1/applications/tenant-grants/grant", tokens.AccessToken, map[string]any{
+		"tenant_id": tenantID, "application_id": application.ID, "source": "system-test", "entitlements_json": map[string]any{},
+	})
+	waitImportDataset(t, ctx, importURL, tokens.AccessToken, tenantID, application.ID, "billing.plans")
 	planCode := "system-plan-" + suffix
-	createdImport := post(t, ctx, importURL+"/api/v1/imports/create", tokens.AccessToken, map[string]any{"tenant_id": tenantID, "provider_service": "billing-service", "dataset_code": "billing.plans", "format": "csv", "filename": "plans.csv", "idempotency_key": "system-import-" + suffix})
+	createdImport := post(t, ctx, importURL+"/api/v1/imports/create", tokens.AccessToken, scopedPayload(tenantID, application.ID, map[string]any{"provider_service": "billing-service", "dataset_code": "billing.plans", "format": "csv", "filename": "plans.csv", "idempotency_key": "system-import-" + suffix}))
 	var importCreation struct {
 		Job struct {
 			ID      string `json:"id"`
@@ -87,14 +109,14 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	content := []byte("code,name,description,currency,billing_interval,base_amount_minor,trial_days,entitlements_json\n" + planCode + ",System Plan,,CNY,month,9900,7,{}\n")
 	putUpload(t, ctx, importCreation.UploadURL, importCreation.UploadHeaders, content)
 	digest := sha256.Sum256(content)
-	completedImport := post(t, ctx, importURL+"/api/v1/imports/complete-upload", tokens.AccessToken, map[string]any{"tenant_id": tenantID, "id": importCreation.Job.ID, "version": importCreation.Job.Version, "source_bytes": len(content), "source_checksum": hex.EncodeToString(digest[:])})
+	completedImport := post(t, ctx, importURL+"/api/v1/imports/complete-upload", tokens.AccessToken, scopedPayload(tenantID, application.ID, map[string]any{"id": importCreation.Job.ID, "version": importCreation.Job.Version, "source_bytes": len(content), "source_checksum": hex.EncodeToString(digest[:])}))
 	var queuedImport struct {
 		Version int64 `json:"version"`
 	}
 	decodeBody(t, completedImport, &queuedImport)
-	readyImport := waitImportStatus(t, ctx, importURL, tokens.AccessToken, tenantID, importCreation.Job.ID, "ready")
-	post(t, ctx, importURL+"/api/v1/imports/confirm", tokens.AccessToken, map[string]any{"tenant_id": tenantID, "id": importCreation.Job.ID, "version": readyImport.Version, "idempotency_key": "system-import-confirm-" + suffix})
-	waitImportStatus(t, ctx, importURL, tokens.AccessToken, tenantID, importCreation.Job.ID, "succeeded")
+	readyImport := waitImportStatus(t, ctx, importURL, tokens.AccessToken, tenantID, application.ID, importCreation.Job.ID, "ready")
+	post(t, ctx, importURL+"/api/v1/imports/confirm", tokens.AccessToken, scopedPayload(tenantID, application.ID, map[string]any{"id": importCreation.Job.ID, "version": readyImport.Version, "idempotency_key": "system-import-confirm-" + suffix}))
+	waitImportStatus(t, ctx, importURL, tokens.AccessToken, tenantID, application.ID, importCreation.Job.ID, "succeeded")
 	importedPlan := post(t, ctx, billingURL+"/api/v1/plans/get", tokens.AccessToken, map[string]any{"code": planCode})
 	var plan struct {
 		Plan struct {
@@ -132,24 +154,6 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	if len(resolved) != 2 || !resolved[0].Found || resolved[1].Found {
 		t.Fatalf("dynamic organization dictionary resolve mismatch: %+v", resolved)
 	}
-	applicationResponse := post(t, ctx, applicationURL+"/api/v1/applications/create", tokens.AccessToken, map[string]any{
-		"code": "system_" + suffix, "name": "System Application", "default_route": "/home", "metadata_json": map[string]any{},
-	})
-	var application struct {
-		ID      string `json:"id"`
-		Version int64  `json:"version"`
-	}
-	decodeBody(t, applicationResponse, &application)
-	post(t, ctx, applicationURL+"/api/v1/applications/menus/upsert", tokens.AccessToken, map[string]any{
-		"menu":             map[string]any{"application_id": application.ID, "code": "home", "type": "page", "name": "Home", "route": "/home", "component": "HomePage", "permission_code": "home.read", "visible": true},
-		"expected_version": 0,
-	})
-	post(t, ctx, applicationURL+"/api/v1/applications/menus/publish", tokens.AccessToken, map[string]any{
-		"application_id": application.ID, "application_version": application.Version, "comment": "system test",
-	})
-	post(t, ctx, applicationURL+"/api/v1/applications/tenant-grants/grant", tokens.AccessToken, map[string]any{
-		"tenant_id": tenantID, "application_id": application.ID, "source": "system-test", "entitlements_json": map[string]any{},
-	})
 	waitSearchDocument(t, ctx, searchURL, tokens.AccessToken, tenantID, application.ID, "System Application")
 	checkResponse := post(t, ctx, applicationURL+"/api/v1/applications/tenant-grants/batch-check", tokens.AccessToken, map[string]any{
 		"tenant_id": tenantID, "application_ids": []string{application.ID},
@@ -365,11 +369,15 @@ func waitSearchDocument(t *testing.T, ctx context.Context, baseURL, token, tenan
 	t.Fatalf("application %s was not projected into search within 30 seconds", applicationID)
 }
 
-func waitImportDataset(t *testing.T, ctx context.Context, baseURL, token, tenantID, code string) {
+func waitImportDataset(t *testing.T, ctx context.Context, baseURL, token, tenantID, applicationID, code string) {
 	t.Helper()
 	deadline := time.Now().Add(30 * time.Second)
+	var lastResult response
+	var lastStatus int
+	var lastErr error
 	for time.Now().Before(deadline) {
-		result, statusCode, err := tryPost(ctx, baseURL+"/api/v1/imports/datasets/list", token, map[string]any{"tenant_id": tenantID, "search": code, "page": 1, "page_size": 20})
+		result, statusCode, err := tryPost(ctx, baseURL+"/api/v1/imports/datasets/list", token, scopedPayload(tenantID, applicationID, map[string]any{"search": code, "page": 1, "page_size": 20}))
+		lastResult, lastStatus, lastErr = result, statusCode, err
 		if err != nil || statusCode != http.StatusOK || result.Code != 0 {
 			time.Sleep(250 * time.Millisecond)
 			continue
@@ -387,7 +395,7 @@ func waitImportDataset(t *testing.T, ctx context.Context, baseURL, token, tenant
 		}
 		time.Sleep(250 * time.Millisecond)
 	}
-	t.Fatalf("import dataset %s was not discovered within 30 seconds", code)
+	t.Fatalf("import dataset %s was not discovered within 30 seconds: status=%d response=%+v error=%v", code, lastStatus, lastResult, lastErr)
 }
 
 type importJobStatus struct {
@@ -397,11 +405,11 @@ type importJobStatus struct {
 	ErrorMessage string `json:"error_message"`
 }
 
-func waitImportStatus(t *testing.T, ctx context.Context, baseURL, token, tenantID, id, expected string) importJobStatus {
+func waitImportStatus(t *testing.T, ctx context.Context, baseURL, token, tenantID, applicationID, id, expected string) importJobStatus {
 	t.Helper()
 	deadline := time.Now().Add(45 * time.Second)
 	for time.Now().Before(deadline) {
-		result := post(t, ctx, baseURL+"/api/v1/imports/get", token, map[string]any{"tenant_id": tenantID, "id": id})
+		result := post(t, ctx, baseURL+"/api/v1/imports/get", token, scopedPayload(tenantID, applicationID, map[string]any{"id": id}))
 		var job importJobStatus
 		decodeBody(t, result, &job)
 		if job.Status == expected {

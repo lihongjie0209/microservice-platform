@@ -849,11 +849,11 @@
 - Symptom: a public authentication endpoint worked under the default profile but returned 401 in Compose after a new route was added.
 - Root cause: Viper profile list overlays replace the complete `auth.skip_http_paths` slice instead of merging it, so the Compose override silently omitted newer mandatory public routes.
 - Prevention: keep profile overrides synchronized with the authoritative public-auth route set, assert every mandatory route across concrete profiles, and prefer removing duplicate list overrides when a profile does not intentionally change them.
-## 2026-09-02: health does not prove provider registration readiness
+## 2026-09-02: discovery polling must expose contract errors
 
 - Symptom: every Compose container was healthy, but the system test could not discover the `billing.plans` import dataset within its bounded wait.
-- Root cause: billing-service published provider metadata asynchronously but did not declare service-registry-service as a healthy startup dependency, so HTTP/gRPC readiness could precede a usable registration snapshot.
-- Prevention: every Compose service that enables registry-backed provider publication waits for service-registry-service health; retain a static Compose invariant and keep consumers tolerant of lease renewal and discovery replay.
+- Root cause: the journey still sent the pre-application-scope request and omitted `application_id`; its polling loop swallowed repeated HTTP 400 responses and mislabeled them as discovery delay. Provider startup ordering was a plausible but incorrect first diagnosis.
+- Prevention: build every scoped system-test request through one tenant/application payload helper, run that helper's unit regression outside the `system` build tag, and preserve the last non-success response in bounded poll failures. Registry publishers still wait for registry health, but health cannot explain a deterministic request-validation error.
 ## 2026-09-02: application entry policy must have one implementation
 
 - Symptom: the application launcher blocked an unavailable frontend module, while the global-header switcher could still select and route into the same application.

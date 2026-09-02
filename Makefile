@@ -23,7 +23,7 @@ SERVICE_DIR = services/$(SERVICE)
 	service-migrate-down service-dev-up service-dev-down service-dev-logs \
 	platform-bootstrap-build platform-bootstrap-apply \
 	build test test-integration ci-test-integration lint swagger swagger-check verify \
-	delivery-check compose-check console-endpoint-invariants-check application-manifest-invariants-check loop-failure-check integration-policy-check event-bus-check event-reliability-check contract-ownership-check api-invariants-check authorization-invariants-check menu-permission-invariants-check database-invariants-check infra-up infra-down infra-logs infra-status dev-up dev-down dev-logs system-test ci-system-test clean clean-tools
+	delivery-check compose-check console-endpoint-invariants-check application-manifest-invariants-check loop-failure-check integration-policy-check event-bus-check event-reliability-check contract-ownership-check api-invariants-check authorization-invariants-check menu-permission-invariants-check database-invariants-check infra-up infra-down infra-logs infra-status dev-up dev-down dev-logs system-tests-unit system-test ci-system-test clean clean-tools
 
 help:
 	@echo "Workspace commands:"
@@ -34,6 +34,7 @@ help:
 	@echo "  make test                   Run SDK and service unit tests with race detection"
 	@echo "  make test-integration       Compile integration suites without running containers"
 	@echo "  make system-test            Compile platform system tests without starting Compose"
+	@echo "  make system-tests-unit      Run fast unit regressions owned by the system-test project"
 	@echo "  make ci-test-integration    Run isolated Testcontainers suites (GitHub CI only)"
 	@echo "  make lint                   Run vet and configured service linters"
 	@echo "  make swagger                Regenerate service OpenAPI documents"
@@ -165,7 +166,7 @@ swagger: services-swagger
 
 swagger-check: services-swagger-check
 
-verify: contracts-check sdk-test services-test services-vet services-swagger-check delivery-check compose-check console-endpoint-invariants-check application-manifest-invariants-check loop-failure-check integration-policy-check event-bus-check event-reliability-check contract-ownership-check api-invariants-check authorization-invariants-check menu-permission-invariants-check database-invariants-check
+verify: contracts-check sdk-test services-test services-vet services-swagger-check delivery-check compose-check console-endpoint-invariants-check application-manifest-invariants-check loop-failure-check integration-policy-check event-bus-check event-reliability-check contract-ownership-check api-invariants-check authorization-invariants-check menu-permission-invariants-check database-invariants-check system-tests-unit
 
 loop-failure-check:
 	@if $(MAKE) --no-print-directory services-build SERVICES="missing-service workflow-service" >/dev/null 2>&1; then \
@@ -245,6 +246,9 @@ dev-down:
 
 dev-logs:
 	docker compose --profile platform -f environments/local/docker-compose.yml logs -f
+
+system-tests-unit:
+	cd system-tests && go test ./...
 
 system-test:
 	cd system-tests && go test -tags=system -run '^$$' ./...
