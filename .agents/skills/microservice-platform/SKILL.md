@@ -124,6 +124,8 @@ Local development must not execute Testcontainers, Docker Compose, or platform s
 
 Frontend production bundles must embed the package version, source Git commit, and build time. Container and release workflows pass the immutable commit explicitly because Docker build contexts may not contain `.git`; local builds may fall back to the current checkout. Include this build identity in application-chunk failure telemetry and expose a concise version in the global shell so operators can distinguish stale browser assets from backend failures.
 
+Treat all browser persistence as untrusted, version-skewed input. Normalize and bound local/session storage before use, scope user conveniences by authenticated subject and tenant, and intersect cached identifiers with freshly authorized server state; persisted navigation preferences never grant access or make an unavailable application executable.
+
 Also generate a fresh service when changing the template/generator. Within each service verify frontend API, gRPC status behavior, outbound client behavior against stubs, event redelivery/idempotency, migration up/down, and shared-database schema isolation. Run platform `system-tests` separately in GitHub CI for multi-service journeys.
 
 ## Maintenance rule
