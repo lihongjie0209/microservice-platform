@@ -859,3 +859,9 @@
 - Symptom: the application launcher blocked an unavailable frontend module, while the global-header switcher could still select and route into the same application.
 - Root cause: publication and frontend-compatibility checks were duplicated across entry-point components and evolved independently.
 - Prevention: every launcher, switcher, deep-link guard, and future recent-app shortcut consumes one pure application-entry decision function; retain tests for unpublished, unavailable, and ready navigation.
+
+## 2026-09-02: application scope changes must invalidate in-flight page requests
+
+- Symptom: after switching tenant or application, a slower response issued for the previous scope could replace the new page's rows or leave one-time secrets and dialogs visible.
+- Root cause: page watchers started a new request but did not invalidate the previous Promise or clear scope-owned transient state before loading the replacement dataset.
+- Prevention: begin every scope-sensitive load with the shared latest-request guard, apply results and loading completion only for the current revision, and synchronously clear rows, selections, dialogs, details, and one-time secrets when tenant or application scope changes.
