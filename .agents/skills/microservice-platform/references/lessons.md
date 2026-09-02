@@ -1027,3 +1027,9 @@
 - Symptom: invoking the standalone Prettier CLI rewrote otherwise valid TypeScript and Vue files to double quotes, after which the repository ESLint gate reported hundreds of Prettier warnings and an import-order error.
 - Root cause: the standalone CLI did not resolve the same formatting policy embedded in the project's ESLint configuration, so a generally familiar formatter command was not equivalent to the CI gate.
 - Prevention: use the repository's `pnpm lint`/ESLint configuration as the authoritative frontend formatter and run scoped `eslint --fix` for mechanical edits. After auto-fixing, rerun typecheck, unit tests, boundary checks, lint, and build; do not assume a standalone formatter shares CI configuration.
+
+## 2026-09-03: keep Node-tested frontend registries free of static SFC imports
+
+- Symptom: application load-policy tests passed, but unrelated navigation and registry tests failed with `ERR_UNKNOWN_FILE_EXTENSION` after the registry statically imported a Vue SFC error component.
+- Root cause: the production registry is also imported by `tsx --test`; Node can execute its TypeScript dependency graph but cannot load `.vue` files without the Vite transform pipeline.
+- Prevention: keep registry and policy dependency graphs executable in plain Node. Implement small shared fallback components in TypeScript with Vue render functions, or inject browser-only components at a boundary not imported by Node tests. Run the complete test command after changing any transitive registry dependency, not only the new focused test.
