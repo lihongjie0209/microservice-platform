@@ -871,3 +871,9 @@
 - Symptom: an application-scoped API returned dependency-unavailable even though application-service was healthy and the tenant grant existed.
 - Root cause: the consumer created an unauthenticated gRPC client for `BatchCheckTenantApplications`; application-service correctly rejected it, and the consumer translated that transport error to a 503.
 - Prevention: protect the shared grant-check RPC with an authentication mechanism understood by the interceptor, configure every consumer with matching outbound credentials, and wait for application-service readiness in Compose. A verified mTLS channel does not become an application principal unless certificate identity mapping is explicitly implemented; until then production uses PSK over mTLS. Permit plaintext credentials only behind an explicit non-production `allow_insecure` setting that production validation rejects. Keep a Compose invariant covering the complete consumer set and carry the same capability in the service template.
+
+## 2026-09-02: Viper slice environment variables are comma-separated
+
+- Symptom: a service repeatedly failed startup validation because a configured gRPC method appeared as one value containing literal square brackets.
+- Root cause: Compose used YAML-looking `[value]` syntax inside an environment-variable string, while Viper's decode hook expects string slices as comma-separated values without brackets.
+- Prevention: encode slice environment overrides as `value-a,value-b`, add a config unit test for the environment decoding path, and make Compose invariants reject bracket-wrapped slice strings.

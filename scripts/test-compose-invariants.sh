@@ -29,8 +29,12 @@ import_service=$(awk '
     in_service { print }
 ' "$compose_file")
 grant_method=/platform.application.v1.ApplicationService/BatchCheckTenantApplications
-if ! printf '%s\n' "$application_service" | grep -Fq "APP_AUTH_PSK_GRPC_METHODS: \"[$grant_method]\""; then
+if ! printf '%s\n' "$application_service" | grep -Fq "APP_AUTH_PSK_GRPC_METHODS: $grant_method"; then
     echo "application-service must protect the tenant-application grant check with PSK" >&2
+    exit 1
+fi
+if grep -Eq 'APP_AUTH_PSK_GRPC_METHODS:.*\[[^]]*\]' "$compose_file"; then
+    echo "PSK gRPC method environment variables must use Viper comma-separated syntax without brackets" >&2
     exit 1
 fi
 if ! printf '%s\n' "$import_service" | grep -Fq 'application-service: {condition: service_healthy}'; then

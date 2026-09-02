@@ -335,7 +335,7 @@ services:
       APP_AUTH_AUDIENCE: application-service
       APP_AUTH_PSK_ENABLED: "true"
       APP_AUTH_PSK_KEY: application-dev-psk-000000000000000000
-      APP_AUTH_PSK_GRPC_METHODS: "[/platform.application.v1.ApplicationService/BatchCheckTenantApplications]"
+      APP_AUTH_PSK_GRPC_METHODS: /platform.application.v1.ApplicationService/BatchCheckTenantApplications
 
   dictionary-service:
     <<: *platform-service
@@ -471,7 +471,7 @@ services:
       APP_OUTBOUND_GRPC_METERING_TARGET: metering-service:9090
       APP_AUTH_PSK_ENABLED: "true"
       APP_AUTH_PSK_KEY: registry-dev-psk-00000000000000000000
-      APP_AUTH_PSK_GRPC_METHODS: "[/platform.export.v1.ExportProviderService/*,/platform.import.v1.ImportProviderService/*]"
+      APP_AUTH_PSK_GRPC_METHODS: /platform.export.v1.ExportProviderService/*,/platform.import.v1.ImportProviderService/*
       APP_SERVICE_REGISTRY_ENABLED: "true"
       APP_SERVICE_REGISTRY_TARGET: service-registry-service:9090
       APP_SERVICE_REGISTRY_PSK: registry-dev-psk-00000000000000000000
