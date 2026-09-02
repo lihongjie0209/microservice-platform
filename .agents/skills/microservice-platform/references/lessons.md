@@ -967,3 +967,9 @@
 - Symptom: metering-service was healthy, but its first usage write returned `application authorization is unavailable` because the application grant check lacked client credentials.
 - Root cause: application grant validation was treated as an internal implementation detail, so metering-service was omitted from both the Compose dependency graph and the authenticated-consumer invariant.
 - Prevention: when a write path performs a remote business validation, model that upstream as an explicit service dependency. Configure its authentication in every environment, verify nested environment decoding in the consumer's unit tests, and include the consumer in deployment credential invariants.
+
+## 2026-09-02: example documentation must describe implemented example routes
+
+- Symptom: generated services carried Swagger comments for user CRUD types and operations that the service did not implement, making source review and aggregate API documentation misleading.
+- Root cause: domain-specific sample comments remained in the generic service template after the executable example was reduced to a ping endpoint.
+- Prevention: keep template OpenAPI annotations adjacent to real handlers and remove domain examples when their routes are removed. A template-local unit invariant rejects the stale user operation/type markers so newly generated services cannot reintroduce them.
