@@ -48,3 +48,22 @@ if [ -z "$application_psk" ] || [ "$application_psk" != "$import_psk" ]; then
     echo "application-service and import-service development PSKs must match" >&2
     exit 1
 fi
+
+for consumer_name in audit-service dictionary-service scheduler-service search-service data-export-service; do
+    consumer_service=$(awk -v service="$consumer_name" '
+        $0 == "  " service ":" { in_service = 1; next }
+        in_service && /^  [a-zA-Z0-9_-]+:/ { exit }
+        in_service { print }
+    ' "$compose_file")
+    if ! printf '%s\n' "$consumer_service" | grep -Fq 'application-service: {condition: service_healthy}' ||
+        ! printf '%s\n' "$consumer_service" | grep -Fq 'APP_OUTBOUND_GRPC_APPLICATION_AUTH_TYPE: psk' ||
+        ! printf '%s\n' "$consumer_service" | grep -Fq 'APP_OUTBOUND_GRPC_APPLICATION_TLS_ALLOW_INSECURE: "true"'; then
+        echo "$consumer_name must wait for and authenticate application grant checks" >&2
+        exit 1
+    fi
+    consumer_psk=$(printf '%s\n' "$consumer_service" | sed -n 's/^[[:space:]]*APP_OUTBOUND_GRPC_APPLICATION_AUTH_TOKEN:[[:space:]]*//p')
+    if [ "$application_psk" != "$consumer_psk" ]; then
+        echo "application-service and $consumer_name development PSKs must match" >&2
+        exit 1
+    fi
+done

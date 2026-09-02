@@ -865,3 +865,9 @@
 - Symptom: after switching tenant or application, a slower response issued for the previous scope could replace the new page's rows or leave one-time secrets and dialogs visible.
 - Root cause: page watchers started a new request but did not invalidate the previous Promise or clear scope-owned transient state before loading the replacement dataset.
 - Prevention: begin every scope-sensitive load with the shared latest-request guard, apply results and loading completion only for the current revision, and synchronously clear rows, selections, dialogs, details, and one-time secrets when tenant or application scope changes.
+
+## 2026-09-02: internal authorization checks still require transport credentials
+
+- Symptom: an application-scoped API returned dependency-unavailable even though application-service was healthy and the tenant grant existed.
+- Root cause: the consumer created an unauthenticated gRPC client for `BatchCheckTenantApplications`; application-service correctly rejected it, and the consumer translated that transport error to a 503.
+- Prevention: protect the shared grant-check RPC with PSK or mTLS, configure every consumer with matching outbound credentials, wait for application-service readiness in Compose, and permit plaintext credentials only behind an explicit non-production `allow_insecure` setting that production validation rejects. Keep a Compose invariant covering the complete consumer set and carry the same capability in the service template.

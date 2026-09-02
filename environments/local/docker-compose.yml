@@ -228,6 +228,7 @@ services:
     depends_on:
       <<: *platform-dependencies
       identity-service: {condition: service_healthy}
+      application-service: {condition: service_healthy}
     environment:
       <<: *platform-env
       APP_DATABASE_SCHEMA: audit
@@ -236,6 +237,9 @@ services:
       APP_MIGRATION_TABLE: audit_schema_migrations
       APP_AUTH_JWKS_URL: http://identity-service:8080/.well-known/jwks.json
       APP_AUTH_AUDIENCE: audit-service
+      APP_OUTBOUND_GRPC_APPLICATION_AUTH_TYPE: psk
+      APP_OUTBOUND_GRPC_APPLICATION_AUTH_TOKEN: application-dev-psk-000000000000000000
+      APP_OUTBOUND_GRPC_APPLICATION_TLS_ALLOW_INSECURE: "true"
 
   config-service:
     <<: *platform-service
@@ -301,6 +305,7 @@ services:
       <<: *platform-dependencies
       identity-service: {condition: service_healthy}
       audit-service: {condition: service_healthy}
+      application-service: {condition: service_healthy}
     environment:
       <<: *platform-env
       APP_DATABASE_SCHEMA: scheduler
@@ -309,6 +314,9 @@ services:
       APP_MIGRATION_TABLE: scheduler_schema_migrations
       APP_AUTH_JWKS_URL: http://identity-service:8080/.well-known/jwks.json
       APP_AUTH_AUDIENCE: scheduler-service
+      APP_OUTBOUND_GRPC_APPLICATION_AUTH_TYPE: psk
+      APP_OUTBOUND_GRPC_APPLICATION_AUTH_TOKEN: application-dev-psk-000000000000000000
+      APP_OUTBOUND_GRPC_APPLICATION_TLS_ALLOW_INSECURE: "true"
 
   application-service:
     <<: *platform-service
@@ -337,6 +345,7 @@ services:
       <<: *platform-dependencies
       identity-service: {condition: service_healthy}
       service-registry-service: {condition: service_healthy}
+      application-service: {condition: service_healthy}
     environment:
       <<: *platform-env
       APP_DATABASE_SCHEMA: dictionary
@@ -345,6 +354,9 @@ services:
       APP_MIGRATION_TABLE: dictionary_schema_migrations
       APP_AUTH_JWKS_URL: http://identity-service:8080/.well-known/jwks.json
       APP_AUTH_AUDIENCE: dictionary-service
+      APP_OUTBOUND_GRPC_APPLICATION_AUTH_TYPE: psk
+      APP_OUTBOUND_GRPC_APPLICATION_AUTH_TOKEN: application-dev-psk-000000000000000000
+      APP_OUTBOUND_GRPC_APPLICATION_TLS_ALLOW_INSECURE: "true"
 
   service-registry-service:
     <<: *platform-service
@@ -405,6 +417,7 @@ services:
       identity-service: {condition: service_healthy}
       authorization-service: {condition: service_healthy}
       opensearch: {condition: service_healthy}
+      application-service: {condition: service_healthy}
     environment:
       <<: *platform-env
       APP_DATABASE_SCHEMA: search
@@ -416,6 +429,9 @@ services:
       APP_OPENSEARCH_ENABLED: "true"
       APP_OPENSEARCH_ADDRESSES: http://opensearch:9200
       APP_OUTBOUND_GRPC_AUTHORIZATION_TARGET: authorization-service:9090
+      APP_OUTBOUND_GRPC_APPLICATION_AUTH_TYPE: psk
+      APP_OUTBOUND_GRPC_APPLICATION_AUTH_TOKEN: application-dev-psk-000000000000000000
+      APP_OUTBOUND_GRPC_APPLICATION_TLS_ALLOW_INSECURE: "true"
 
   metering-service:
     <<: *platform-service
@@ -487,6 +503,7 @@ services:
       <<: *platform-dependencies
       identity-service: {condition: service_healthy}
       service-registry-service: {condition: service_healthy}
+      application-service: {condition: service_healthy}
       minio-init: {condition: service_completed_successfully}
     environment:
       <<: *platform-env
@@ -508,6 +525,9 @@ services:
       APP_PROVIDER_CLIENT_PSK: registry-dev-psk-00000000000000000000
       APP_PROVIDER_CLIENT_ALLOWED_DNS_SUFFIXES: "-service"
       APP_PROVIDER_CLIENT_ALLOW_INSECURE: "true"
+      APP_OUTBOUND_GRPC_APPLICATION_AUTH_TYPE: psk
+      APP_OUTBOUND_GRPC_APPLICATION_AUTH_TOKEN: application-dev-psk-000000000000000000
+      APP_OUTBOUND_GRPC_APPLICATION_TLS_ALLOW_INSECURE: "true"
   import-service:
     <<: *platform-service
     build: {context: ../../services/import-service, args: {GOPROXY: "${GOPROXY:-https://goproxy.cn,direct}"}}
