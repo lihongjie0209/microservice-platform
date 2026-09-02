@@ -872,8 +872,26 @@
 - Root cause: the consumer created an unauthenticated gRPC client for `BatchCheckTenantApplications`; application-service correctly rejected it, and the consumer translated that transport error to a 503.
 - Prevention: protect the shared grant-check RPC with an authentication mechanism understood by the interceptor, configure every consumer with matching outbound credentials, and wait for application-service readiness in Compose. A verified mTLS channel does not become an application principal unless certificate identity mapping is explicitly implemented; until then production uses PSK over mTLS. Permit plaintext credentials only behind an explicit non-production `allow_insecure` setting that production validation rejects. Keep a Compose invariant covering the complete consumer set and carry the same capability in the service template.
 
-## 2026-09-02: Viper slice environment variables are comma-separated
+## 2026-09-02: slice environment syntax must match every deployed config loader
 
 - Symptom: a service repeatedly failed startup validation because a configured gRPC method appeared as one value containing literal square brackets.
-- Root cause: Compose used YAML-looking `[value]` syntax inside an environment-variable string, while Viper's decode hook expects string slices as comma-separated values without brackets.
-- Prevention: encode slice environment overrides as `value-a,value-b`, add a config unit test for the environment decoding path, and make Compose invariants reject bracket-wrapped slice strings.
+- Root cause: Compose used YAML-looking `[value]` syntax inside an environment-variable string. The current template's custom decode hook accepts this form, but an older deployed service still used Viper's default comma-separated decoding and retained the brackets literally.
+- Prevention: use the lowest-common-denominator `value-a,value-b` syntax in shared deployment assets until every service carries the template hook, add a config unit test for each affected service's environment decoding path, and make Compose invariants reject bracket-wrapped slice strings.
+
+## 2026-09-02: a newly imported Go module must be promoted to direct
+
+- Symptom: local tests and lint passed, but CI's `go mod tidy && git diff --exit-code` failed because a module remained in the indirect require block after production code began importing it.
+- Root cause: dependency classification in `go.mod` was not refreshed after adding the direct import.
+- Prevention: run `go mod tidy` and inspect the module diff before committing every new Go import, even when the required version already exists transitively in `go.sum`.
+
+## 2026-09-02: hidden scaffold routes are still product surface
+
+- Symptom: application menus were correctly isolated, but a scaffold utility marked `constant` remained reachable by direct URL, while the authenticated personal-center link was absent from dynamic application routes.
+- Root cause: menu visibility, anonymous constant routes, and authenticated shell routes were reviewed independently; a Node unit test also imported the full router and failed while loading `.vue` components.
+- Prevention: classify every generated route as public shell, authenticated shell/application, or omitted; allow only login and error pages before session initialization, mount cross-application account pages explicitly, and unit-test the pure route-classification policy without importing browser components.
+
+## 2026-09-02: discovery ejection must not defeat the current retry budget
+
+- Symptom: an import job reported `no healthy service instance` immediately after its only registered Provider suffered one transient stream-open failure.
+- Root cause: the client ejected the instance for 30 seconds after the first attempt, then retried after 100ms; every remaining attempt was guaranteed to fail discovery and the final error hid the original transport failure.
+- Prevention: rotate candidates during the operation without long-term ejection, report discovery failure only after the operation exhausts its retry budget, and retain circuit-breaker accounting at the transport layer. Unit-test both transient recovery and exactly-once final ejection.
