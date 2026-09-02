@@ -120,13 +120,60 @@ func TestIdentityTenantAuthorizationAndAuditJourney(t *testing.T) {
 	importedPlan := post(t, ctx, billingURL+"/api/v1/plans/get", tokens.AccessToken, map[string]any{"code": planCode})
 	var plan struct {
 		Plan struct {
-			Code string `json:"code"`
+			ID              string `json:"id"`
+			Code            string `json:"code"`
+			Name            string `json:"name"`
+			Description     string `json:"description"`
+			BaseAmountMinor int64  `json:"base_amount_minor"`
+			TrialDays       int32  `json:"trial_days"`
+			Version         int64  `json:"version"`
 		} `json:"plan"`
 	}
 	decodeBody(t, importedPlan, &plan)
 	if plan.Plan.Code != planCode {
 		t.Fatalf("imported billing plan mismatch: %+v", plan)
 	}
+	post(t, ctx, billingURL+"/api/v1/plans/update", tokens.AccessToken, map[string]any{
+		"id": plan.Plan.ID, "name": plan.Plan.Name, "description": plan.Plan.Description,
+		"base_amount_minor": plan.Plan.BaseAmountMinor, "trial_days": plan.Plan.TrialDays,
+		"status": "active", "entitlements_json": map[string]any{}, "version": plan.Plan.Version,
+	})
+	createdSubscription := post(t, ctx, billingURL+"/api/v1/subscriptions/create", tokens.AccessToken, scopedPayload(tenantID, application.ID, map[string]any{
+		"plan_id": plan.Plan.ID, "external_reference": "system-subscription-" + suffix,
+	}))
+	var subscription struct {
+		ID string `json:"id"`
+	}
+	decodeBody(t, createdSubscription, &subscription)
+	generatedInvoice := post(t, ctx, billingURL+"/api/v1/invoices/generate", tokens.AccessToken, scopedPayload(tenantID, application.ID, map[string]any{
+		"subscription_id": subscription.ID, "idempotency_key": "system-invoice-" + suffix,
+	}))
+	var invoiceResult struct {
+		Invoice struct {
+			ID string `json:"id"`
+		} `json:"invoice"`
+	}
+	decodeBody(t, generatedInvoice, &invoiceResult)
+	createdExport := post(t, ctx, exportURL+"/api/v1/exports/create", tokens.AccessToken, scopedPayload(tenantID, application.ID, map[string]any{
+		"provider_service": "billing-service", "dataset_code": "billing.invoices", "format": "csv",
+		"filename": "invoices.csv", "query": map[string]any{}, "selected_columns": []string{"id", "number"},
+		"idempotency_key": "system-export-" + suffix,
+	}))
+	var exportCreation struct {
+		Job struct {
+			ID string `json:"id"`
+		} `json:"job"`
+	}
+	decodeBody(t, createdExport, &exportCreation)
+	waitExportStatus(t, ctx, exportURL, tokens.AccessToken, tenantID, application.ID, exportCreation.Job.ID, "succeeded")
+	downloadResponse := post(t, ctx, exportURL+"/api/v1/exports/download", tokens.AccessToken, scopedPayload(tenantID, application.ID, map[string]any{
+		"id": exportCreation.Job.ID, "ttl_seconds": 300,
+	}))
+	var download struct {
+		URL string `json:"url"`
+	}
+	decodeBody(t, downloadResponse, &download)
+	getContains(t, ctx, download.URL, invoiceResult.Invoice.ID)
 	organizationResponse := post(t, ctx, tenantURL+"/api/v1/organization-units/create", tokens.AccessToken, map[string]any{"tenant_id": tenantID, "code": "engineering", "name": "Engineering"})
 	var organization struct {
 		Code string `json:"code"`
@@ -403,6 +450,31 @@ type importJobStatus struct {
 	Version      int64  `json:"version"`
 	ErrorCode    string `json:"error_code"`
 	ErrorMessage string `json:"error_message"`
+}
+
+type exportJobStatus struct {
+	Status       string `json:"status"`
+	ErrorCode    string `json:"error_code"`
+	ErrorMessage string `json:"error_message"`
+}
+
+func waitExportStatus(t *testing.T, ctx context.Context, baseURL, token, tenantID, applicationID, id, expected string) exportJobStatus {
+	t.Helper()
+	deadline := time.Now().Add(45 * time.Second)
+	for time.Now().Before(deadline) {
+		result := post(t, ctx, baseURL+"/api/v1/exports/get", token, scopedPayload(tenantID, applicationID, map[string]any{"id": id}))
+		var job exportJobStatus
+		decodeBody(t, result, &job)
+		if job.Status == expected {
+			return job
+		}
+		if job.Status == "failed" || job.Status == "canceled" || job.Status == "expired" {
+			t.Fatalf("export job reached %s while waiting for %s: %+v", job.Status, expected, job)
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+	t.Fatalf("export job %s did not reach %s within 45 seconds", id, expected)
+	return exportJobStatus{}
 }
 
 func waitImportStatus(t *testing.T, ctx context.Context, baseURL, token, tenantID, applicationID, id, expected string) importJobStatus {

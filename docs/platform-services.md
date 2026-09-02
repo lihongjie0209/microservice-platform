@@ -256,6 +256,7 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 
 - 按 `tenant_id + application_id` 管理异步导出任务，提供创建、查询、分页、取消、重试和短时下载 URL 的前端 POST+JSON 接口，并通过 application-service 校验应用授权
 - 业务服务实现中央 `platform.export.v1.ExportProviderService` 流式协议；导出服务通过注册中心的 `platform.export.provider` 能力发现来源，不生成领域专用 client，也不查询其他服务 Schema
+- Provider 流以已被格式化/存储管道接受的批次作为 cursor 提交点，瞬时断连使用 cursor 与 snapshot token 有界续传；只有显式 `done` 才视为完成，提前 EOF 不得生成静默截断的成功结果
 - CSV、JSONL、XLSX 均以批次流式编码并直接 multipart 上传 S3/MinIO，限制最大行数、字节数和执行时间，记录 SHA-256
 - 幂等键、任务查询、对象路径、Provider 请求和事件 Envelope 均保留相同应用归属，不允许同租户不同应用共享任务或结果
 - 任务请求与成功、失败、取消、重试、过期事件通过事务 Outbox 和 JetStream durable consumer 传递；数据库状态负责原子 claim，重投不会重复执行已结束任务
@@ -268,6 +269,7 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 - 管理上传、异步校验、错误报告、人工确认、批量应用、取消、重试和任务查询
 - CSV、JSONL、XLSX 使用有界批次解析，规范化数据和错误报告限制临时文件大小并存入 S3/MinIO
 - 业务服务实现中央 `platform.import.v1.ImportProviderService`，导入服务不生成领域专用 Client，也不读取其他服务 Schema
+- Provider 的每个校验/应用批次必须携带显式 `tenant_id + application_id + job_id`，同一双向流固定该三元作用域；作用域不得藏在自由 JSON 字段或在批次间切换
 - 任务、幂等键、对象路径、Worker claim、Provider 批次请求和事件 Envelope 保留同一应用归属；任务状态通过数据库原子 claim 与事务 Outbox 驱动 JetStream durable consumer，批次应用携带稳定幂等键
 - 历史任务无法推断真实应用时保持空归属且不向应用 API 暴露；升级时取消未完成任务，待运营侧权威回填后再恢复访问
 - 结果到期由 Cron 清理对象并写入过期事件；所有用户变更使用审计主体和版本号乐观锁

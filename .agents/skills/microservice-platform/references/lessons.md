@@ -895,3 +895,15 @@
 - Symptom: an import job reported `no healthy service instance` immediately after its only registered Provider suffered one transient stream-open failure.
 - Root cause: the client ejected the instance for 30 seconds after the first attempt, then retried after 100ms; every remaining attempt was guaranteed to fail discovery and the final error hid the original transport failure.
 - Prevention: rotate candidates during the operation without long-term ejection, report discovery failure only after the operation exhausts its retry budget, and retain circuit-breaker accounting at the transport layer. Unit-test both transient recovery and exactly-once final ejection.
+
+## 2026-09-02: resumable streams need an explicit batch commit point
+
+- Symptom: a transient Provider disconnect failed an entire export, while an EOF before the final batch could be accepted as success and silently produce a truncated object.
+- Root cause: the streaming client treated transport completion as business completion and did not advance the protocol's cursor and snapshot token only after the downstream consumer accepted a batch.
+- Prevention: require the protocol's explicit final marker, treat premature EOF as retryable truncation, and update the resume cursor only after storage/formatting accepts the batch. Retry only transport failures, never consumer failures, and eject discovery instances only after the stream retry budget is exhausted. Unit-test continuation without duplicate batches, consumer failure, retry exhaustion, and incomplete EOF.
+
+## 2026-09-02: a contract field is unavailable until every participant upgrades
+
+- Symptom: the consumer sent top-level `application_id`, but a Provider still required the same value inside free-form `query_json`; its pinned generated SDK predated the typed field, so valid UI requests failed and conflicting scopes were possible.
+- Root cause: the authoritative Proto had evolved while one multi-protocol producer remained on an older release; implementation review assumed repository source and pinned generated code were equivalent.
+- Prevention: inspect each participant's pinned contract version before using a new field, upgrade through the newest protocol it implements, and compile the whole service. Scope belongs in typed request fields, must be required and fixed for a stream, and any temporary legacy duplicate is accepted only when it exactly matches. Keep producer tests for missing, conflicting, and cross-batch scope.
