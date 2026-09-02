@@ -955,3 +955,9 @@
 - Symptom: file and import HTTP responses serialized domain records directly, exposing bucket names, object keys, idempotency keys, or multipart storage identifiers that the browser did not need.
 - Root cause: JSON tags on repository models were treated as an API contract, so adding an internal persistence field could silently expand the public response and generated OpenAPI.
 - Prevention: map domain records into explicit HTTP response DTOs with an allowlist of public fields; keep storage locators and request-deduplication state internal. Generate OpenAPI from the DTO and unit-test serialized output against both sensitive field names and representative secret values.
+
+## 2026-09-02: authenticated upstream invariants must enumerate every consumer
+
+- Symptom: most services authenticated application-grant checks successfully, but the platform journey failed only when it reached workflow-service with `missing or invalid PSK`.
+- Root cause: the deployment invariant enumerated a fixed consumer list that omitted workflow-service, so a healthy target and an unauthenticated client configuration passed static validation.
+- Prevention: whenever a protected capability gains a consumer, add that service to the credential/dependency invariant in the same change. Check healthy dependency ordering, auth type, matching credential, and explicit development plaintext opt-in together.

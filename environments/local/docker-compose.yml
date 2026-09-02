@@ -396,6 +396,7 @@ services:
       <<: *platform-dependencies
       identity-service: {condition: service_healthy}
       authorization-service: {condition: service_healthy}
+      application-service: {condition: service_healthy}
       temporal: {condition: service_healthy}
     environment:
       <<: *platform-env
@@ -405,6 +406,9 @@ services:
       APP_MIGRATION_TABLE: workflow_schema_migrations
       APP_AUTH_JWKS_URL: http://identity-service:8080/.well-known/jwks.json
       APP_AUTH_AUDIENCE: workflow-service
+      APP_OUTBOUND_GRPC_APPLICATION_AUTH_TYPE: psk
+      APP_OUTBOUND_GRPC_APPLICATION_AUTH_TOKEN: application-dev-psk-000000000000000000
+      APP_OUTBOUND_GRPC_APPLICATION_TLS_ALLOW_INSECURE: "true"
       APP_TEMPORAL_ENABLED: "true"
       APP_TEMPORAL_HOST_PORT: temporal:7233
 
