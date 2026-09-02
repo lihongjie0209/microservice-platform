@@ -1021,3 +1021,9 @@
 - Symptom: unit, race, vet, build, and an earlier local lint run passed, but GitHub CI rejected a small shared-SDK adapter because a third-party import was adjacent to `context` without a blank group separator.
 - Root cause: `gofmt` formats syntax but does not organize imports like `goimports`; cached or differently timed local lint output was treated as proof for source that changed afterward.
 - Prevention: keep standard-library and third-party imports in separate groups, run the repository's own `make lint` after the final formatting edit, and never make another source change between the last lint result and commit without rerunning the affected gate. Check the authoritative GitHub run at the next task boundary and add the smallest deterministic local regression or static invariant when a CI-only mismatch appears.
+
+## 2026-09-03: use the repository's authoritative frontend formatter
+
+- Symptom: invoking the standalone Prettier CLI rewrote otherwise valid TypeScript and Vue files to double quotes, after which the repository ESLint gate reported hundreds of Prettier warnings and an import-order error.
+- Root cause: the standalone CLI did not resolve the same formatting policy embedded in the project's ESLint configuration, so a generally familiar formatter command was not equivalent to the CI gate.
+- Prevention: use the repository's `pnpm lint`/ESLint configuration as the authoritative frontend formatter and run scoped `eslint --fix` for mechanical edits. After auto-fixing, rerun typecheck, unit tests, boundary checks, lint, and build; do not assume a standalone formatter shares CI configuration.
