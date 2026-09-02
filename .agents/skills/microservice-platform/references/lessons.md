@@ -919,3 +919,9 @@
 - Symptom: a newly registered system-test user could administer its tenant but received 403 from platform-scoped billing plan APIs.
 - Root cause: tenant creation correctly bootstrapped only the tenant-owner membership. The reserved platform super-admin role deliberately had no binding, and the journey never invoked the existing audited bootstrap command for its new Identity user.
 - Prevention: keep platform and tenant administration separate. Provision the first platform administrator through the explicit idempotent bootstrap binary (or its Kubernetes Job), never by weakening platform resources to tenant scope or auto-promoting the first registrant. System journeys must invoke that command before exercising platform-scoped APIs and unit-test command construction without a shell.
+
+## 2026-09-02: integration Providers must implement the complete capability contract
+
+- Symptom: production-side dataset validation passed unit tests, but export integration tests began returning 400/503 before creating jobs.
+- Root cause: one fake Provider returned a descriptor without formats or columns, while another test configured no Provider endpoint at all because the old create path only needed identifiers and deferred Provider access until background execution.
+- Prevention: when a consumer moves capability validation earlier, upgrade in-process and integration Providers to expose the same descriptor, scope, formats, and fields as production. Do not add test-only bypasses to runtime validation. Compile integration suites locally and execute their infrastructure-backed behavior in CI.
