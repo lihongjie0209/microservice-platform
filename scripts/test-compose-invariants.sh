@@ -71,3 +71,14 @@ for consumer_name in audit-service billing-service dictionary-service scheduler-
         exit 1
     fi
 done
+
+data_export_service=$(awk '
+    /^  data-export-service:/ { in_service = 1; next }
+    in_service && /^  [a-zA-Z0-9_-]+:/ { exit }
+    in_service { print }
+' "$compose_file")
+if ! printf '%s\n' "$data_export_service" | grep -Fq 'APP_OBJECT_STORAGE_PRESIGN_ENDPOINT: 127.0.0.1:9000' ||
+    ! printf '%s\n' "$data_export_service" | grep -Fq 'APP_OBJECT_STORAGE_REGION: us-east-1'; then
+    echo "data-export-service must sign development download URLs for the host-visible MinIO endpoint" >&2
+    exit 1
+fi

@@ -519,6 +519,8 @@ services:
       APP_AUTH_AUDIENCE: data-export-service
       APP_OBJECT_STORAGE_ENABLED: "true"
       APP_OBJECT_STORAGE_ENDPOINT: minio:9000
+      APP_OBJECT_STORAGE_PRESIGN_ENDPOINT: 127.0.0.1:9000
+      APP_OBJECT_STORAGE_REGION: us-east-1
       APP_OBJECT_STORAGE_ACCESS_KEY: platform-minio
       APP_OBJECT_STORAGE_SECRET_KEY: platform-minio-dev
       APP_OBJECT_STORAGE_BUCKET: platform-exports
