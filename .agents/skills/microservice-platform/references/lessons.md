@@ -907,3 +907,9 @@
 - Symptom: the consumer sent top-level `application_id`, but a Provider still required the same value inside free-form `query_json`; its pinned generated SDK predated the typed field, so valid UI requests failed and conflicting scopes were possible.
 - Root cause: the authoritative Proto had evolved while one multi-protocol producer remained on an older release; implementation review assumed repository source and pinned generated code were equivalent.
 - Prevention: inspect each participant's pinned contract version before using a new field, upgrade through the newest protocol it implements, and compile the whole service. Scope belongs in typed request fields, must be required and fixed for a stream, and any temporary legacy duplicate is accepted only when it exactly matches. Keep producer tests for missing, conflicting, and cross-batch scope.
+
+## 2026-09-02: capability-authenticated RPCs must not blindly repeat user RBAC
+
+- Symptom: an Import Provider accepted only a dedicated internal PSK, then tried to authorize that synthetic PSK principal through the tenant RBAC service; validation failed as “authorization decision unavailable” before any data was processed.
+- Root cause: transport capability authentication and end-user authorization were stacked mechanically even though the internal Provider RPC is invoked on behalf of an already authorized import/export job. Forwarding the Provider PSK to the decision RPC also cannot coexist with a decision endpoint that must accept browser Bearer credentials.
+- Prevention: classify each internal RPC's trust boundary explicitly. A narrow Provider PSK/mTLS capability may be the authorization for that RPC; in that case omit redundant user RBAC, require the typed tenant/application/job scope, and revalidate ownership in the calling service. Never broaden a shared decision RPC to PSK-only when it also serves user Bearer flows. Unit-test both valid capability access and missing-credential rejection.
