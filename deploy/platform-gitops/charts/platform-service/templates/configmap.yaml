@@ -15,6 +15,9 @@ data:
   APP_EVENT_BUS_ENABLED: {{ .Values.eventBus.enabled | quote }}
   APP_EVENT_BUS_URLS: {{ .Values.eventBus.urls | quote }}
   APP_EVENT_BUS_STREAM_NAME: {{ .Values.eventBus.streamName | quote }}
+  {{- if .Values.objectStorage.enabled }}
+  APP_OBJECT_STORAGE_ENABLED: "true"
+  {{- end }}
   APP_AUTH_JWKS_URL: {{ printf "http://identity-service.%s.svc.cluster.local:8080/.well-known/jwks.json" .Values.namespace | quote }}
   APP_AUTH_ISSUER: {{ .Values.auth.issuer | quote }}
   APP_AUTH_AUDIENCE: {{ .Values.name | quote }}

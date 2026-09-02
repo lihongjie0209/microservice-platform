@@ -140,3 +140,17 @@ printf '%s\n' "$search_output" | grep -q 'APP_OPENSEARCH_ENABLED: "true"'
 printf '%s\n' "$search_output" | grep -q 'opensearch.platform-infrastructure.svc.cluster.local:9200'
 printf '%s\n' "$search_output" | grep -q 'dns:///authorization-service.platform-development.svc.cluster.local:9090'
 printf '%s\n' "$search_output" | grep -q 'APP_AUTH_AUDIENCE: "search-service"'
+
+export_output=$(helm template data-export-service "$test_chart" \
+  --namespace platform-development \
+  --set name=data-export-service \
+  --set namespace=platform-development \
+  --set environment=development \
+  --set image.repository=ghcr.io/lihongjie0209/data-export-service \
+  --set image.tag=v0.1.0 \
+  --set database.schema=data_export \
+  --set database.migrationTable=data_export_schema_migrations \
+  --set objectStorage.enabled=true \
+  --set externalSecret.key=platform/development/data-export-service)
+
+printf '%s\n' "$export_output" | grep -q 'APP_OBJECT_STORAGE_ENABLED: "true"'

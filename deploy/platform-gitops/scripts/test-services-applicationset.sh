@@ -43,6 +43,11 @@ export_schema=$("$yq_binary" -r '.spec.generators[0].matrix.generators[1].list.e
 import_schema=$("$yq_binary" -r '.spec.generators[0].matrix.generators[1].list.elements[] | select(.service == "import-service") | .schema' "$applicationset")
 [ "$import_schema" = "data_import" ]
 
+object_storage_parameter=$("$yq_binary" -r '.spec.template.spec.source.helm.parameters[] | select(.name == "objectStorage.enabled") | .value' "$applicationset")
+printf '%s\n' "$object_storage_parameter" | grep -q 'file-service'
+printf '%s\n' "$object_storage_parameter" | grep -q 'data-export-service'
+printf '%s\n' "$object_storage_parameter" | grep -q 'import-service'
+
 if grep -q 'github.com/lihongjie0209/platform-gitops' "$applicationset"; then
   echo "service ApplicationSet still references the removed repository" >&2
   exit 1

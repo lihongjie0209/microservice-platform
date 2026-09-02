@@ -101,6 +101,8 @@ spec:
             - {name: database.migrationTable, value: '{{ .schema }}_schema_migrations'}
             - {name: redis.enabled, value: '{{ .redis }}'}
             - {name: eventBus.enabled, value: '{{ .eventBus }}'}
+            - name: objectStorage.enabled
+              value: '{{ if or (eq .service "file-service") (eq .service "data-export-service") (eq .service "import-service") }}true{{ else }}false{{ end }}'
             - name: workflow.enabled
               value: '{{ if eq .service "workflow-service" }}true{{ else }}false{{ end }}'
             - name: search.enabled

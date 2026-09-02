@@ -949,3 +949,9 @@
 - Symptom: an export completed and produced a valid S3 signature, but the system-test client could not resolve the URL host `minio`; the service had signed its container-internal storage endpoint.
 - Root cause: one MinIO client was used both for internal object I/O and for URLs returned to browsers or host-side clients, even though those callers use a different DNS and TLS boundary.
 - Prevention: configure separate internal and public presign endpoints, construct a signing client with the public host while keeping object writes on the internal client, and never rewrite a URL after signing. Unit-test both client hosts and add a deployment invariant requiring the public endpoint and signing region.
+
+## 2026-09-02: persistence models are not public transport models
+
+- Symptom: file and import HTTP responses serialized domain records directly, exposing bucket names, object keys, idempotency keys, or multipart storage identifiers that the browser did not need.
+- Root cause: JSON tags on repository models were treated as an API contract, so adding an internal persistence field could silently expand the public response and generated OpenAPI.
+- Prevention: map domain records into explicit HTTP response DTOs with an allowlist of public fields; keep storage locators and request-deduplication state internal. Generate OpenAPI from the DTO and unit-test serialized output against both sensitive field names and representative secret values.

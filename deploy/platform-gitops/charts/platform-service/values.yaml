@@ -24,6 +24,9 @@ eventBus:
   urls: nats://nats.platform-infrastructure.svc.cluster.local:4222
   streamName: PLATFORM_EVENTS
 
+objectStorage:
+  enabled: false
+
 auth:
   issuer: identity-service
 
