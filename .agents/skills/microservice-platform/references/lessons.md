@@ -854,3 +854,8 @@
 - Symptom: every Compose container was healthy, but the system test could not discover the `billing.plans` import dataset within its bounded wait.
 - Root cause: billing-service published provider metadata asynchronously but did not declare service-registry-service as a healthy startup dependency, so HTTP/gRPC readiness could precede a usable registration snapshot.
 - Prevention: every Compose service that enables registry-backed provider publication waits for service-registry-service health; retain a static Compose invariant and keep consumers tolerant of lease renewal and discovery replay.
+## 2026-09-02: application entry policy must have one implementation
+
+- Symptom: the application launcher blocked an unavailable frontend module, while the global-header switcher could still select and route into the same application.
+- Root cause: publication and frontend-compatibility checks were duplicated across entry-point components and evolved independently.
+- Prevention: every launcher, switcher, deep-link guard, and future recent-app shortcut consumes one pure application-entry decision function; retain tests for unpublished, unavailable, and ready navigation.
