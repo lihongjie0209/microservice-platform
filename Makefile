@@ -41,7 +41,7 @@ help:
 	@echo "  make swagger-check          Regenerate and verify service OpenAPI documents"
 	@echo "  make database-invariants-check  Verify database/schema/migration conventions"
 	@echo "  make authorization-invariants-check  Verify every business permission declares its scope"
-	@echo "  make menu-permission-invariants-check  Match menu permission codes and scopes to service requirements"
+	@echo "  make menu-permission-invariants-check  Match menu/action permissions to backend requirements and frontend references"
 	@echo "  make console-endpoint-invariants-check  Match console development URLs to Compose ports"
 	@echo "  make application-manifest-invariants-check  Match bootstrap menus to console application manifests"
 	@echo "  make verify                 Run contracts, unit tests, vet and OpenAPI checks"
