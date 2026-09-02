@@ -1015,3 +1015,9 @@
 - Symptom: HTTP and gRPC accepted an `Idempotency-Key`, and Uber Fx constructed a Redis idempotency manager, but handlers still executed again because no transport middleware called `Begin`, `Complete`, or `Fail`.
 - Root cause: wiring and context propagation were mistaken for an end-to-end behavior; no test traced the state machine across the authenticated transport boundary. Applying idempotency to every POST would also have cached query/list requests because the platform intentionally uses POST+JSON for reads.
 - Prevention: verify each cross-cutting feature from transport entry through its decisive side effect, not merely DI construction. Enable idempotency only for explicit wildcard-capable mutation allowlists, include service, authenticated principal, method/route, and deterministic payload in its namespace/fingerprint, and keep Redis state-machine ownership in the shared SDK while transports own framework adapters. Unit-test acquired/completed/failed/processing/conflict paths, current Request ID on replay, principal isolation, and unconfigured POST-query bypass.
+
+## 2026-09-03: gofmt does not enforce import grouping
+
+- Symptom: unit, race, vet, build, and an earlier local lint run passed, but GitHub CI rejected a small shared-SDK adapter because a third-party import was adjacent to `context` without a blank group separator.
+- Root cause: `gofmt` formats syntax but does not organize imports like `goimports`; cached or differently timed local lint output was treated as proof for source that changed afterward.
+- Prevention: keep standard-library and third-party imports in separate groups, run the repository's own `make lint` after the final formatting edit, and never make another source change between the last lint result and commit without rerunning the affected gate. Check the authoritative GitHub run at the next task boundary and add the smallest deterministic local regression or static invariant when a CI-only mismatch appears.
