@@ -44,3 +44,33 @@ func requirement() { principal := authz.ScopePrincipal; _ = authz.Requirement{Re
 		t.Fatalf("principal alias = %q, want ScopePrincipal", got)
 	}
 }
+
+func TestDynamicManagementImplementations(t *testing.T) {
+	t.Parallel()
+	file, err := parser.ParseFile(token.NewFileSet(), "source.go", `package test
+func (h *Handler) authorize(c Context, tenantID, scope, action string) {
+	h.service.AuthorizeUserManagementScope(c, tenantID, scope, "authorization.role", action)
+}
+func (h *Handler) create(c Context) { h.authorize(c, "tenant-1", "tenant", "create") }
+func (h *Handler) update(c Context) { h.authorize(c, "tenant-1", "platform", "update") }
+func (h *Handler) ignored(c Context, action string) { h.authorize(c, "tenant-1", "tenant", action) }
+`, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := dynamicManagementImplementations(file)
+	want := map[permissionImplementation]bool{
+		{Code: "authorization.role.create", Scope: "ScopePrincipal"}: true,
+		{Code: "authorization.role.create", Scope: "ScopePlatform"}:  true,
+		{Code: "authorization.role.update", Scope: "ScopePrincipal"}: true,
+		{Code: "authorization.role.update", Scope: "ScopePlatform"}:  true,
+	}
+	if len(got) != len(want) {
+		t.Fatalf("implementations = %#v, want %d entries", got, len(want))
+	}
+	for _, implementation := range got {
+		if !want[implementation] {
+			t.Fatalf("unexpected implementation %#v", implementation)
+		}
+	}
+}

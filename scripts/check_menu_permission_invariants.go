@@ -67,8 +67,75 @@ func collectPermissionImplementations(root string) ([]permissionImplementation, 
 			}
 			return true
 		})
+		result = append(result, dynamicManagementImplementations(file)...)
 	}
 	return result, nil
+}
+
+// Dynamic management endpoints derive tenant/platform scope from a validated request field.
+// Resolve their wrapper function to the concrete resource, then collect every literal action
+// used by a handler so the manifest verifier still proves that an executable endpoint exists.
+func dynamicManagementImplementations(file *ast.File) []permissionImplementation {
+	helperResources := make(map[string]string)
+	for _, declaration := range file.Decls {
+		function, ok := declaration.(*ast.FuncDecl)
+		if !ok || function.Body == nil {
+			continue
+		}
+		ast.Inspect(function.Body, func(node ast.Node) bool {
+			call, ok := node.(*ast.CallExpr)
+			if !ok || selectorName(call.Fun) != "AuthorizeUserManagementScope" || len(call.Args) < 5 {
+				return true
+			}
+			if resource, ok := stringLiteral(call.Args[3]); ok {
+				helperResources[function.Name.Name] = resource
+			}
+			return true
+		})
+	}
+
+	result := make([]permissionImplementation, 0)
+	ast.Inspect(file, func(node ast.Node) bool {
+		call, ok := node.(*ast.CallExpr)
+		if !ok || len(call.Args) == 0 {
+			return true
+		}
+		resource, ok := helperResources[selectorName(call.Fun)]
+		if !ok {
+			return true
+		}
+		action, ok := stringLiteral(call.Args[len(call.Args)-1])
+		if !ok {
+			return true
+		}
+		code := resource + "." + action
+		result = append(result,
+			permissionImplementation{Code: code, Scope: "ScopePrincipal"},
+			permissionImplementation{Code: code, Scope: "ScopePlatform"},
+		)
+		return true
+	})
+	return result
+}
+
+func selectorName(expression ast.Expr) string {
+	switch value := expression.(type) {
+	case *ast.SelectorExpr:
+		return value.Sel.Name
+	case *ast.Ident:
+		return value.Name
+	default:
+		return ""
+	}
+}
+
+func stringLiteral(expression ast.Expr) (string, bool) {
+	value, ok := expression.(*ast.BasicLit)
+	if !ok || value.Kind != token.STRING {
+		return "", false
+	}
+	decoded, err := strconv.Unquote(value.Value)
+	return decoded, err == nil
 }
 
 func isMenuRequirementType(expression ast.Expr) bool {
