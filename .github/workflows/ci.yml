@@ -49,6 +49,8 @@ jobs:
         run: make menu-permission-invariants-check
       - name: Validate console development endpoints
         run: make console-endpoint-invariants-check
+      - name: Validate application manifests
+        run: make application-manifest-invariants-check
       - name: Run platform journey
         run: make ci-system-test
       - name: Show service logs on failure
