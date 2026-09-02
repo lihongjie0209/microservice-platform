@@ -937,3 +937,9 @@
 - Symptom: Compose explicitly opted a development PSK client into plaintext transport, yet the service failed startup with “credentials require TLS” and became unhealthy.
 - Root cause: the service used an older outbound model that neither decoded `tls.allow_insecure` nor forwarded it to the gRPC credential guard; checking the deployment YAML alone proved only that the environment variable existed.
 - Prevention: when adding an authenticated upstream, verify file/environment decoding, production validation, outbound-to-dialer mapping, and deployment values as one path. Unit-test both the production rejection and the final dialer configuration. Compose invariants cover consumer presence and matching credentials, while service-local tests prove that its pinned configuration implementation understands every supplied security flag.
+
+## 2026-09-02: Viper cannot override an undiscoverable nested map leaf
+
+- Symptom: a correctly named `APP_OUTBOUND_GRPC_APPLICATION_TLS_ALLOW_INSECURE=true` variable was visible in Compose, but Viper unmarshalling left the nested boolean false and rejected service startup.
+- Root cause: `AutomaticEnv` reads requested keys but does not add an environment-only leaf to the settings tree used to unmarshal a nested map; the new `allow_insecure` leaf was absent from the base YAML.
+- Prevention: declare every environment-overridable leaf in the base configuration (or explicitly bind it), and add a load-level unit test using the exact deployment environment variable. Testing a struct mutated after loading does not prove environment injection works.
