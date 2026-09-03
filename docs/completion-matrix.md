@@ -16,7 +16,7 @@
 | scheduler | 任务 CRUD、手动触发、执行记录 | 同等任务管理与触发契约 | 复用平台事件总线基础设施 | 动态 Reflection 调用、集群锁、乐观锁、执行幂等与审计 |
 | swagger | API 文档中心、聚合服务目录、OpenAPI 文档和统一 Swagger UI | 不暴露业务 gRPC | 无状态，不接入事件总线 | 静态配置 + Kubernetes Service Informer 自动发现、JWT/平台授权、TTL 缓存和 stale fallback |
 | application | 应用目录、菜单草稿/发布、租户应用授权 | 应用、菜单版本和授权管理契约 | 应用、菜单发布、租户授权事件 + outbox | 声明式 bootstrap CLI/Job、菜单不可变发布快照、授权乐观锁、权限码引用 |
-| dictionary | 静态字典、版本发布、分页/搜索/树/编码解析和 Provider 查询 | 字典管理与通用动态 Provider 数据面 | 字典发布和 Provider 变更事件 + outbox | 静态版本快照；动态数据由业务服务拥有并通过注册中心发现 |
+| dictionary | 静态字典、条目详情、版本发布、分页/搜索/树/编码解析和 Provider 查询；条目编辑与删除前刷新详情 | 字典管理、条目详情与通用动态 Provider 数据面 | 字典发布和 Provider 变更事件 + outbox | 条目通过所属字典执行持久化租户/应用授权；静态版本快照；动态数据由业务服务拥有并通过注册中心发现 |
 | service-registry | 服务与实例查询管理页面接口 | 注册、续租、draining、注销、发现和 revision Watch | Redis Stream 作为可恢复的实例变更流 | Redis Lua 原子租约、令牌摘要、TTL、索引；无业务数据库 |
 | workflow | 定义、发布、实例和我的任务页面接口；实例/任务详情实时刷新；任务轨迹分页查询 | 完整工作流管理契约；任务与实例轨迹使用独立权限入口；服务任务动态调用内部 gRPC | 状态/任务事件 + Outbox；命令 durable consumer 驱动 Temporal | 发布快照、实例/任务乐观锁、认领/完成/转派事务内审计、Temporal 幂等与补偿 |
 | search | 当前应用内查询、建议、单文档页面接口，支持分页/过滤/排序/高亮/聚合 | 中央 Search API；受保护批量重建接口 | durable 消费搜索文档事件 + 事务 Inbox | OpenSearch 外部版本、服务端可见性令牌、应用授权、JWT 租户隔离、授权角色解析 |
