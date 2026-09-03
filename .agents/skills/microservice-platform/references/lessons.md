@@ -1069,3 +1069,9 @@
 - Symptom: application, role, group, import/export dataset, service-registry, dictionary-draft, and OpenAPI selectors remained fast in development but issued every page on each open or search as their catalogs grew.
 - Root cause: `collectAllPages` was introduced for the launcher's genuinely complete authorization snapshot, then reused for interactive selectors where only the visible search results were needed. A page-one static check allowed the helper and therefore could not distinguish those semantics.
 - Prevention: interactive tables use visible server pagination; searchable selectors use a single bounded `remoteSearchPage` request and preserve the selected option. Application source must not call `collectAllPages`; complete authorization snapshots belong in a reviewed platform-context boundary with chunked downstream calls and dedicated tests. Tree APIs are not flattened into ordinary pages: use explicit depth/node limits and evolve lazy-children/search-with-ancestors contracts for large hierarchies.
+
+## 2026-09-03: list snapshots are not concurrency tokens
+
+- Symptom: edit, delete, cancel, publish, or other optimistic mutations submitted the version copied from a paginated list row, so a page left open could send a predictably stale token without first showing the latest resource state.
+- Root cause: list DTOs happened to contain `version` and were treated as interchangeable with detail responses, even though lists are navigation/search projections and may remain visible indefinitely.
+- Prevention: expose an explicitly authorized detail lookup for every mutable resource. After the user enters or confirms a mutation flow, fetch that detail, verify its persisted tenant/application ownership server-side, and derive the mutation payload and expected version from the fresh result. Gate the UI flow with both read and mutation permissions; keep the backend optimistic-lock check authoritative for changes that occur after the detail read.
