@@ -1063,3 +1063,9 @@
 - Symptom: newly added batch and search endpoints were registered under the authenticated API group and passed functional tests, but were absent from the route-to-permission table, so a valid JWT could reach them without the intended domain authorization decision.
 - Root cause: route registration, Swagger generation, and handler tests did not prove that the separate fail-closed authorization classifier knew about each new path.
 - Prevention: every protected HTTP route must add its resource, action, and scope mapping in the same change. Maintain a regression test that enumerates new protected routes and asserts a non-empty requirement; when practical, derive a completeness check from the router's registered routes so authentication cannot be mistaken for authorization.
+
+## 2026-09-03: management selectors must not materialize complete growing catalogs
+
+- Symptom: application, role, group, import/export dataset, service-registry, dictionary-draft, and OpenAPI selectors remained fast in development but issued every page on each open or search as their catalogs grew.
+- Root cause: `collectAllPages` was introduced for the launcher's genuinely complete authorization snapshot, then reused for interactive selectors where only the visible search results were needed. A page-one static check allowed the helper and therefore could not distinguish those semantics.
+- Prevention: interactive tables use visible server pagination; searchable selectors use a single bounded `remoteSearchPage` request and preserve the selected option. Application source must not call `collectAllPages`; complete authorization snapshots belong in a reviewed platform-context boundary with chunked downstream calls and dedicated tests. Tree APIs are not flattened into ordinary pages: use explicit depth/node limits and evolve lazy-children/search-with-ancestors contracts for large hierarchies.
