@@ -41,6 +41,27 @@ not a second OLTP table shared by services.
 5. `pg_partman` is deployment/DBA automation only. Runtime migrations remain
    valid on a plain PostgreSQL/Kingbase installation.
 
+## Growing hierarchical catalogs
+
+`tenant-service.organization_units` is active master data rather than an
+append-only history table, so time-based retention and automatic deletion do
+not apply. Tenant offboarding is the only supported archive/deletion boundary.
+The table is nevertheless expected to grow and must follow these rules:
+
+1. Child navigation is a tenant-scoped database query backed by
+   `(tenant_id, parent_id)` and returns `limit + 1` rows to determine
+   `has_more`; the browser must not materialize the complete tree.
+2. Search returns a bounded match set plus only the ancestors required to show
+   those matches. Depth and total returned nodes are capped by the service.
+3. Batch hydration is tenant-scoped, deduplicates identifiers, and accepts at
+   most 100 organization IDs per request.
+4. Code/path lookups retain tenant-leading indexes. Provider-specific search
+   indexes may be added only after query plans and production measurements show
+   they are needed; the portable PostgreSQL/Kingbase/MySQL contract remains the
+   baseline.
+5. Organization removal follows tenant lifecycle and referential-integrity
+   checks. It is never performed by a generic retention worker.
+
 ## Finance retention gate
 
 Billing payment attempts, provider-event deduplication records, and refunds are
