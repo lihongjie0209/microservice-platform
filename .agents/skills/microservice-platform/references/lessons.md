@@ -1057,3 +1057,9 @@
 - Symptom: typecheck, lint, unit tests, application boundaries, contract checks, and production build all passed locally, but CI rejected new remote-search calls because `check:bounded-collections` had not been included in the local command.
 - Root cause: verification was assembled from memory instead of reading the authoritative workflow/package scripts, so a repository-specific static invariant was omitted. The new remote searches also expressed their intentionally bounded first page with the same syntax used by accidental collection truncation.
 - Prevention: derive the local frontend gate list from the current CI workflow and run every check after the final edit. Express bounded remote lookup through the shared `remoteSearchPage` helper, which fixes the first page and clamps result size, while keeping direct hard-coded first-page collection requests forbidden.
+
+## 2026-09-03: authenticated routes still need explicit authorization coverage
+
+- Symptom: newly added batch and search endpoints were registered under the authenticated API group and passed functional tests, but were absent from the route-to-permission table, so a valid JWT could reach them without the intended domain authorization decision.
+- Root cause: route registration, Swagger generation, and handler tests did not prove that the separate fail-closed authorization classifier knew about each new path.
+- Prevention: every protected HTTP route must add its resource, action, and scope mapping in the same change. Maintain a regression test that enumerates new protected routes and asserts a non-empty requirement; when practical, derive a completeness check from the router's registered routes so authentication cannot be mistaken for authorization.

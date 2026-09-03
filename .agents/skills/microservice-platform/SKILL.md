@@ -1,7 +1,6 @@
 ---
 name: microservice-platform
 description: Implement, modify, review, generate, test, or deploy any service, shared contract, SDK, event, database migration, frontend API, internal gRPC API, or infrastructure in the microservice-platform workspace. Always use this skill for work under this workspace so service boundaries, database/schema isolation, contract ownership, event reliability, and verification gates remain consistent.
-compatibility: Requires Go, Git, Docker, Buf, protoc-gen-go, and protoc-gen-go-grpc. Integration tests require Docker.
 ---
 
 # Microservice Platform Engineering
