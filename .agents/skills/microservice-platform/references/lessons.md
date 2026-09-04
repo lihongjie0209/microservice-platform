@@ -1111,3 +1111,9 @@
 - Symptom: deleting a now-unused request struct fixed the Go lint error, but Swagger generation then failed because an unrelated endpoint annotation still named that struct.
 - Root cause: one generic DTO had been reused as documentation metadata even after runtime handlers moved to endpoint-specific request types, so compiler references and Swagger references had diverged.
 - Prevention: prefer endpoint-specific request DTOs, search both Go code and annotation comments before removing a type, and run Swagger generation immediately after transport DTO changes; update stale annotations to the handler's actual decoder type rather than retaining dead structs for documentation only.
+
+# Verification and commit must share one fail-fast chain
+
+- Symptom: lint reported a test-stub naming error, but the same shell invocation still committed and pushed because the commit sequence started on a new line after the `&&`-chained verification sequence.
+- Root cause: a multiline shell command visually looked like one guarded pipeline, while the newline terminated the failing command list and allowed the next list to execute.
+- Prevention: never place staging, commit, or push after an unguarded newline following verification. Run verification as its own command, inspect its exit status, then run the commit in a separate tool call; if combining is unavoidable, connect every boundary with `&&`.
