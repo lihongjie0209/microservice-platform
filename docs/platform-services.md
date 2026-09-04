@@ -239,6 +239,7 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 
 - 套餐和用量价格属于平台级目录，目录读写接口和控制台菜单统一在 `__platform__` 范围授权；订阅、账单、支付尝试和退款统一按 `tenant_id + application_id` 隔离，提供独立 POST+JSON 页面接口与中央 `platform.billing.v1` gRPC 契约
 - 每个租户应用独立维护有效订阅；通过 application-service 校验应用授权，通过 metering-service API 按相同租户/应用获取用量，通过 authorization-service 统一决策套餐管理权限，绝不跨 schema 查询
+- 租户侧套餐选择使用独立的可订阅计划接口，只返回 active 目录项并复用订阅创建权限；创建请求携带所选套餐版本，服务端在订阅事务内锁定套餐并原子校验版本和状态
 - 发票、支付、提供商回调和退款具有持久化幂等边界；所有更新使用版本号乐观锁
 - billing-center 提供独立“支付与退款”工作区：分页查询当前租户应用的支付尝试与退款，幂等发起支付和记录退款；支付方式引用只在提交时发送，不进入浏览器持久状态
 - 下周期换套餐及期末取消由服务内定时任务推进，Redis 分布式锁限制多副本并发

@@ -1099,3 +1099,9 @@
 - Symptom: a version precondition implemented as `UPDATE ... SET version=version` can report zero affected rows for a matching MySQL row and reject a valid operation.
 - Root cause: database drivers differ on whether affected rows means matched rows or physically changed rows; a no-op assignment has no portable row-count contract.
 - Prevention: when an operation must validate without mutating the aggregate, lock and inspect the row with `SELECT ... FOR UPDATE` inside the same transaction as the dependent write; reserve affected-row optimistic locking for updates that actually increment the version.
+
+# Swagger annotation holders must satisfy the Go lint gate
+
+- Symptom: Swagger generation, unit tests, vet, and integration compilation passed, but CI rejected a newly added empty documentation-holder function as unused.
+- Root cause: `swag` discovers annotations from otherwise unreferenced declarations, while the Go unused linter sees no runtime caller; incremental lint reported only the newly introduced holder even though neighboring legacy holders had been grandfathered.
+- Prevention: add a narrowly scoped `//nolint:unused` with the Swagger-discovery reason when introducing annotation-only declarations, and run the repository's exact `golangci-lint` command after the final source edit rather than treating generation as a lint substitute.
