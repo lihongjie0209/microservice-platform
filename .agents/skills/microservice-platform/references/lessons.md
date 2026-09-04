@@ -1088,3 +1088,14 @@
 - Symptom: an upload kept one business key for initialization, but completion and abort calls received fresh request headers on every attempt; adding initialization to generic Redis response replay would instead cache an expiring presigned URL for the much longer result TTL.
 - Root cause: the operation identity, transport attempt, and each state-changing phase were treated as one concern, while the response sensitivity and lifetime were not classified.
 - Prevention: retain one key for the user operation and derive deterministic phase keys such as `operation:complete` and `operation:abort` for middleware-protected stages. Keep responses containing presigned URLs, one-time tokens, or ephemeral credentials out of generic long-lived replay caches; let the domain idempotency boundary return the existing resource and mint a fresh short-lived authorization. Ensure the HTTP `Idempotency-Key` header matches the JSON business key whenever both are present.
+# Similar transport handlers require function-scoped patch review
+
+- Symptom: a DTO and Swagger annotation intended for one POST handler were applied to an adjacent handler with the same annotation shape.
+- Root cause: a textual patch used repeated annotation lines as context instead of anchoring the change to the target function boundary.
+- Prevention: after changing repetitive HTTP/gRPC handlers, inspect the complete neighboring function block and compile transport packages before generation; use the function declaration and route annotation together as patch context.
+
+# No-op UPDATE is not a portable compare-and-swap probe
+
+- Symptom: a version precondition implemented as `UPDATE ... SET version=version` can report zero affected rows for a matching MySQL row and reject a valid operation.
+- Root cause: database drivers differ on whether affected rows means matched rows or physically changed rows; a no-op assignment has no portable row-count contract.
+- Prevention: when an operation must validate without mutating the aggregate, lock and inspect the row with `SELECT ... FOR UPDATE` inside the same transaction as the dependent write; reserve affected-row optimistic locking for updates that actually increment the version.
