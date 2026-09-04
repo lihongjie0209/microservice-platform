@@ -250,7 +250,7 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 - 使用 Google CEL 校验并有界执行有序规则，不允许任意脚本、文件或网络访问
 - 前端通过独立 POST+JSON DTO 管理、校验、发布和试算；内部服务通过中央 `platform.rule.v1.RuleService` 单次/批量 Evaluate
 - 调用方显式提供 facts，规则服务不查询其他服务 Schema；发布版本以校验后的 canonical JSON 和 SHA-256 checksum 固化
-- 版本号分配和持久幂等键在 rule-set 行锁内串行化，发布使用双版本乐观锁
+- 版本号分配和持久幂等键在 rule-set 行锁内串行化；首次创建版本必须匹配规则集期望版本且规则集未禁用，幂等重放仍优先返回原结果；发布使用双版本乐观锁
 - 发布事件与状态在同一事务写入 Outbox，公共 EventEnvelope 同时携带租户与应用作用域并投递到 `PLATFORM_EVENTS`
 
 ### data-export-service
