@@ -1105,3 +1105,9 @@
 - Symptom: Swagger generation, unit tests, vet, and integration compilation passed, but CI rejected a newly added empty documentation-holder function as unused.
 - Root cause: `swag` discovers annotations from otherwise unreferenced declarations, while the Go unused linter sees no runtime caller; incremental lint reported only the newly introduced holder even though neighboring legacy holders had been grandfathered.
 - Prevention: add a narrowly scoped `//nolint:unused` with the Swagger-discovery reason when introducing annotation-only declarations, and run the repository's exact `golangci-lint` command after the final source edit rather than treating generation as a lint substitute.
+
+# Removing a transport DTO requires updating Swagger references
+
+- Symptom: deleting a now-unused request struct fixed the Go lint error, but Swagger generation then failed because an unrelated endpoint annotation still named that struct.
+- Root cause: one generic DTO had been reused as documentation metadata even after runtime handlers moved to endpoint-specific request types, so compiler references and Swagger references had diverged.
+- Prevention: prefer endpoint-specific request DTOs, search both Go code and annotation comments before removing a type, and run Swagger generation immediately after transport DTO changes; update stale annotations to the handler's actual decoder type rather than retaining dead structs for documentation only.
