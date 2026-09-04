@@ -216,6 +216,7 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 - Temporal 负责持久执行与重试；状态与运行命令通过事务 Outbox 写入 NATS JetStream，由 durable consumer 幂等启动、通知和取消流程
 - 页面使用独立 POST+JSON DTO，内部使用中央 `platform.workflow.v1` gRPC 合约；服务任务通过共享动态 Reflection SDK 调用受控上游
 - 任务角色由 authorization-service 解析，客户端不得提交可信角色；所有写操作受 tenant、actor、审计字段和乐观版本约束
+- 实例启动与历史筛选分别使用实例域候选接口：启动权限只能看到 published 定义，列表权限只能看到实际被实例引用过的定义；候选响应不暴露节点图和服务任务配置，控制台不要求手填定义 ID 或 Key
 
 ### search-service
 
