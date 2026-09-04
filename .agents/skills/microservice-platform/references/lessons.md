@@ -1117,3 +1117,8 @@
 - Symptom: lint reported a test-stub naming error, but the same shell invocation still committed and pushed because the commit sequence started on a new line after the `&&`-chained verification sequence.
 - Root cause: a multiline shell command visually looked like one guarded pipeline, while the newline terminated the failing command list and allowed the next list to execute.
 - Prevention: never place staging, commit, or push after an unguarded newline following verification. Run verification as its own command, inspect its exit status, then run the commit in a separate tool call; if combining is unavoidable, connect every boundary with `&&`.
+
+# Reference selectors must not inherit management permissions
+
+- Symptom: a page could read one domain resource but its reference selector reused another domain's management list API, forcing operators to receive unrelated administrative permissions or type opaque IDs manually.
+- Rule: expose a bounded, read-only candidate endpoint in the consuming domain. Authorize it with the consuming operation, enforce eligible states server-side, preserve tenant/application scope, and keep management-only fields or inactive resources out of the result.
