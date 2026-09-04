@@ -282,6 +282,7 @@ tenant-service 首先提供 `tenant.organization_units` 动态字典，后续业
 - 每订阅独立加密密钥、HMAC 验签、SSRF/DNS rebinding 防护和可配置保留清理
 - 已作为独立服务实现，notification-service 不承担通用外部投递职责
 - 订阅、投递记录、查询、重放和测试投递统一按 `tenant_id + application_id` 隔离；应用归属由 application-service 批量授权接口校验。应用事件在公共 `EventEnvelope` 中携带 `application_id`，投递规划器在匹配 Subject 前先按租户和应用筛选，缺少应用作用域的旧事件默认不投递。
+- 测试投递必须携带订阅期望版本；服务端在事务中锁定订阅并确认版本一致且状态为 active 后，才创建合成投递记录。
 
 ## P2：规模化阶段
 
