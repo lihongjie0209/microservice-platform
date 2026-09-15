@@ -1151,3 +1151,9 @@
 - Symptom: a migration created audited tables and then failed while inserting bootstrap rows because the audit trigger could not see `app.actor_id` on a later statement.
 - Root cause: PostgreSQL `set_config(..., true)` is transaction-local; migration drivers are free to execute statements in separate implicit transactions, so the actor can disappear immediately after the setting statement.
 - Prevention: bootstrap data for audited tables sets a stable migration actor at session scope (`set_config(..., false)` for PostgreSQL/Kingbase and `@app_actor_id` for MySQL) before any inserts. Runtime writes continue to use transaction-local actor injection, and integration migration-up tests must read back the bootstrap actor fields on every supported dialect.
+
+# An audit event is not useful if its diagnostic payload is discarded
+
+- Symptom: operation/security events reached audit-service, but persisted rows retained only the envelope event type and schema version; duration, outcome, error, IP, User-Agent and bounded request metadata disappeared.
+- Root cause: the generic event consumer treated payload bytes as opaque protobuf for every event, even though shared operation/security producers intentionally publish already-sanitized JSON payloads.
+- Prevention: preserve valid JSON payloads inside the audit summary after applying the shared redactor again, retain envelope metadata beside them, and fall back to metadata-only summaries for binary domain events. Prefer the operation payload's explicit producer `source` over deriving `operation-log-service` from the generic envelope type, and regression-test both observability retention and secret removal.
