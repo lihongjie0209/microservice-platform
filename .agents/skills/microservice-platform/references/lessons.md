@@ -1,5 +1,11 @@
 # Reusable Lessons
 
+## 2026-09-16: extracting a shared capability must remove service-local implementations
+
+- Symptom: scheduler-service still compiled and maintained its own grpcurl/protoreflect dynamic invoker after the same reflection-based unary JSON-to-Protobuf capability had been released in `platform-go/dynamicgrpc`.
+- Root cause: publishing the SDK package was treated as completion, but existing consumers were not migrated and no ownership check rejected the duplicate implementation.
+- Prevention: when a cross-cutting package is extracted, inventory existing consumers, migrate them to a thin service adapter, remove their direct implementation dependencies, and retain service-local behavior tests against the shared package. Add an invariant when the forbidden duplicate can be identified reliably.
+
 ## 2026-09-02: POST-only business APIs still require gateway GET and OPTIONS methods
 
 - Symptom: service handlers correctly used POST+JSON, but APISIX allowed only POST, so browsers could not complete CORS preflight and standard JWKS, health, Swagger document, and Swagger asset GET requests never reached their handlers.
