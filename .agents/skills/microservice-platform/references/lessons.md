@@ -1,5 +1,11 @@
 # Reusable Lessons
 
+## 2026-09-16: audit triggers apply to maintenance workers too
+
+- Symptom: adding mandatory audit triggers to scheduler tables would make the existing retention worker fail because it issued a physical delete directly through the repository without an actor-bound transaction.
+- Root cause: audit-field migration was reviewed as table DDL, while background cleanup was treated as infrastructure and omitted from the same write-path inventory.
+- Prevention: before enabling audit triggers, enumerate API, consumer, scheduler, repair, retention, and migration writes. Give every runtime worker an explicit system principal, execute through the shared transactor, use logical deletion for audited rows, and test that normal reads hide retained history and PostgreSQL rejects physical deletion.
+
 ## 2026-09-16: extracting a shared capability must remove service-local implementations
 
 - Symptom: scheduler-service still compiled and maintained its own grpcurl/protoreflect dynamic invoker after the same reflection-based unary JSON-to-Protobuf capability had been released in `platform-go/dynamicgrpc`.
