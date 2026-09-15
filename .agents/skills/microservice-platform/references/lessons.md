@@ -1134,3 +1134,9 @@
 
 - Symptom: a page could read one domain resource but its reference selector reused another domain's management list API, forcing operators to receive unrelated administrative permissions or type opaque IDs manually.
 - Rule: expose a bounded, read-only candidate endpoint in the consuming domain. Authorize it with the consuming operation, enforce eligible states server-side, preserve tenant/application scope, and keep management-only fields or inactive resources out of the result.
+
+# Cross-dialect audit guarantees belong in the database boundary
+
+- Symptom: PostgreSQL/Kingbase triggers guaranteed audit timestamps, actors, versions and logical-delete attribution, while MySQL relied on every repository remembering to maintain the same fields explicitly.
+- Root cause: the audit contract was checked at DDL shape level, but its automatic-maintenance guarantee was treated as dialect-specific application code.
+- Prevention: inject the authenticated actor on every dialect's transaction connection and install insert/update/delete triggers for every mutable table. Make source checks reject a new table without all trigger phases, test actor/version/delete behavior in each supported database, and keep physical deletion forbidden except through an explicitly documented retention migration.
