@@ -257,6 +257,12 @@
 - Root cause: binary logging was enabled and `log_bin_trust_function_creators` was disabled, so MySQL required elevated privileges for trigger creation.
 - Prevention: declare `log_bin_trust_function_creators=1` as a MySQL deployment prerequisite for trigger-backed audit ownership, mirror it in Testcontainers/Compose configuration, and keep runtime accounts least-privileged instead of granting `SUPER`.
 
+## Dependency upgrades must finish with a tidy zero-diff check
+
+- Symptom: local compile, unit, race, vet, and lint gates passed, while CI failed its module verification after upgrading a shared contract module.
+- Root cause: `go get` added the new version but left obsolete checksums for the previous direct dependency in `go.sum`; only CI ran `go mod tidy` and detected the drift.
+- Prevention: every Go dependency change ends with `GOWORK=off go mod tidy` followed by `git diff --exit-code -- go.mod go.sum` against the intended staged result, and service verification exposes the same module gate locally.
+
 ## Linter configuration and binary major versions are one contract
 
 - Symptom: every lint job fails before analysis with “configuration file for golangci-lint v2 with golangci-lint v1”.
