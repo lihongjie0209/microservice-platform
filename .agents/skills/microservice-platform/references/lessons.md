@@ -1145,3 +1145,9 @@
 - When a paged repository filters on a joined table (including `deleted_at`), both the count query and item query must contain the same joins and predicates. Add a SQL-mock regression for the count statement because integration data can expose alias errors only after migrations succeed.
 - After upgrading a shared Go module, run `go mod tidy` before every commit and keep CI's module-readonly check as the authority; `go get` can leave obsolete checksums even when local tests pass.
 - For MySQL, `go-sql-driver/mysql.Config.Loc` only controls Go time encoding/decoding; it does not set the server session timezone used by `CURRENT_TIMESTAMP` triggers. Set the connection `time_zone` parameter to `'+08:00'`, unit-test the parsed DSN, and assert `@@session.time_zone` in Testcontainers.
+
+# Seed migrations must establish an audit actor for the whole migration session
+
+- Symptom: a migration created audited tables and then failed while inserting bootstrap rows because the audit trigger could not see `app.actor_id` on a later statement.
+- Root cause: PostgreSQL `set_config(..., true)` is transaction-local; migration drivers are free to execute statements in separate implicit transactions, so the actor can disappear immediately after the setting statement.
+- Prevention: bootstrap data for audited tables sets a stable migration actor at session scope (`set_config(..., false)` for PostgreSQL/Kingbase and `@app_actor_id` for MySQL) before any inserts. Runtime writes continue to use transaction-local actor injection, and integration migration-up tests must read back the bootstrap actor fields on every supported dialect.
