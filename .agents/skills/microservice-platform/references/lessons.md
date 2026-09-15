@@ -245,6 +245,18 @@
 - Root cause: the target used `git diff --exit-code`, which compares against `HEAD` rather than checking whether generation itself changes the working tree.
 - Prevention: copy the generated directory to a temporary directory, run the pinned generator, and compare the two directories. This remains deterministic in dirty worktrees and in CI.
 
+## SQL projection expressions cannot be split into mock columns by commas
+
+- Symptom: a repository unit test panicked because `sqlmock.Rows` saw more column names than returned values for a query containing `COALESCE(column, '')`.
+- Root cause: the test derived result columns with `strings.Split(projection, ", ")`, which treats commas inside SQL function arguments as column separators.
+- Prevention: use explicit result-column names (or a SQL-aware projection helper) whenever a projection contains functions, casts, or nested expressions; never parse SQL with a plain comma split.
+
+## MySQL binary logging constrains non-SUPER trigger migrations
+
+- Symptom: a MySQL 8.4 integration migration failed with error 1419 while a least-privilege application account created database-owned audit triggers.
+- Root cause: binary logging was enabled and `log_bin_trust_function_creators` was disabled, so MySQL required elevated privileges for trigger creation.
+- Prevention: declare `log_bin_trust_function_creators=1` as a MySQL deployment prerequisite for trigger-backed audit ownership, mirror it in Testcontainers/Compose configuration, and keep runtime accounts least-privileged instead of granting `SUPER`.
+
 ## Linter configuration and binary major versions are one contract
 
 - Symptom: every lint job fails before analysis with “configuration file for golangci-lint v2 with golangci-lint v1”.
